@@ -16,19 +16,45 @@ fn serialize_connections(connections: [u8; 4]) -> [(u8, u8); 4] {
     connections.map(|connection| serialize_connection(connection))
 }
 
-// rotate the connections of a tile by 90 degrees
-fn rotate_connection(connection: u8) -> u8 {
-    connection << 2 | connection >> 6
+// rotate the points on a tile by 90 degrees
+fn rotate_points(points: u8) -> u8 {
+    points << 2 | points >> 6
 }
 
 fn rotate_connections(connections: [u8; 4]) -> [u8; 4] {
-    connections.map(|connection| rotate_connection(connection))
+    connections.map(|connection| rotate_points(connection))
+}
+
+// mirrors points on a diagonal axis based on their position on a tile
+fn mirror_points(points: u8) -> u8 {
+    // AB-CD-EF-GH -> EF-GH-AB-CD
+    let bottom = points & 0b0000_0011;
+    let right = points & 0b0000_1100;
+    let top = points & 0b0011_0000;
+    let left = points & 0b1100_0000;
+    bottom << 6 | right << 2 | top >> 2 | left >> 6
+}
+
+fn mirror_connections(connections: [u8; 4]) -> [u8; 4] {
+    connections.map(|connection| mirror_points(connection))
+}
+
+fn flip_points(points: u8) -> u8 {
+    // AB-CD-EF-GH -> FE-HG-BA-DC
+    let rotated = rotate_points(rotate_points(points));
+    let odd = rotated & 0b1010_1010;
+    let even = rotated & 0b0101_0101;
+    odd >> 1 | even << 1
+}
+
+fn flip_connections(connections: [u8; 4]) -> [u8; 4] {
+    connections.map(|connection| flip_points(connection))
 }
 
 #[tauri::command]
-fn greet() -> [(u8, u8); 4] {
+fn test() -> [(u8, u8); 4] {
     let tile = Tile {
-        connections: rotate_connections([0b0000_0011,0b0000_1100,0b0011_0000,0b1100_0000])
+        connections: flip_connections([0b0000_0011,0b0010_0100,0b1000_1000,0b0101_0000])
     };
 
     serialize_connections(tile.connections)
@@ -38,7 +64,7 @@ fn greet() -> [(u8, u8); 4] {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![test])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
