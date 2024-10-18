@@ -16,6 +16,19 @@ fn serialize_connections(connections: [u8; 4]) -> [(u8, u8); 4] {
     connections.map(|connection| serialize_connection(connection))
 }
 
+fn deserialize_connection(connection: (u8, u8)) -> u8 {
+    let (lowest, highest) = connection;
+    let mut result = 0;
+    for i in lowest..highest + 1 {
+        result |= 1 << i;
+    }
+    result
+}
+
+fn deserialize_connections(connections: [(u8, u8); 4]) -> [u8; 4] {
+    connections.map(|connection| deserialize_connection(connection))
+}
+
 // rotate the points on a tile by 90 degrees
 fn rotate_points(points: u8) -> u8 {
     points << 2 | points >> 6
@@ -54,7 +67,8 @@ fn flip_connections(connections: [u8; 4]) -> [u8; 4] {
 #[tauri::command]
 fn test() -> [(u8, u8); 4] {
     let tile = Tile {
-        connections: flip_connections([0b0000_0011,0b0010_0100,0b1000_1000,0b0101_0000])
+        // [0b0000_0011,0b0010_0100,0b1000_1000,0b0101_0000]
+        connections: deserialize_connections([(0, 1), (2, 5), (3, 7), (4, 6)])
     };
 
     serialize_connections(tile.connections)
