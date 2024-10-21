@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {ref} from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import Tile from "./components/Tile.vue";
-import {Connections} from "./types.ts";
+import Tile from "@/components/Tile.vue";
+import {Connections} from "@/types.ts";
 
 const tiles = ref<Connections[]>([]);
 

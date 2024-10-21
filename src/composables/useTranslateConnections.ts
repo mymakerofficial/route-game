@@ -1,5 +1,5 @@
-import {Connection, Connections, TranslatedConnection, TranslatedConnections} from "../types.ts";
-import {numberToPoint} from "./useNumberToPoint.ts";
+import {Connection, Connections, TranslatedConnection, TranslatedConnections} from "@/types.ts";
+import {numberToPoint} from "@/composables/useNumberToPoint.ts";
 import {computed, MaybeRefOrGetter, toValue} from "vue";
 
 export function translateConnection(connection: Connection): TranslatedConnection {

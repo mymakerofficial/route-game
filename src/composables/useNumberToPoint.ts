@@ -1,5 +1,5 @@
 import {computed, MaybeRefOrGetter, toValue} from "vue";
-import {Point} from "../types.ts";
+import {Point} from "@/types.ts";
 
 export function numberToPoint(number: number): Point {
   switch (number) {

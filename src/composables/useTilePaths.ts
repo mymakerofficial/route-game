@@ -1,4 +1,4 @@
-import {Point, TranslatedConnection, TranslatedConnections} from "../types.ts";
+import {Point, TranslatedConnection, TranslatedConnections} from "@/types.ts";
 import {computed, MaybeRefOrGetter, toValue} from "vue";
 
 // gets the handle, 90 degrees from the center of the tile

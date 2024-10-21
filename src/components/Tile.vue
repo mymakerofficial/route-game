@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import {Connections} from "../types.ts";
-import {useTranslateConnections} from "../composables/useTranslateConnections.ts";
-import {useTilePaths} from "../composables/useTilePaths.ts";
+import {Connections} from "@/types.ts";
+import {useTranslateConnections} from "@/composables/useTranslateConnections.ts";
+import {useTilePaths} from "@/composables/useTilePaths.ts";
 
 const props = defineProps<{
   connections: Connections;
