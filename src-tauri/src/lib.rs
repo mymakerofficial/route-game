@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
 
 // a u8 where each lit up bit represents a point on a tile
 //  starting from the least significant bit on the bottom edge left point continuing anti-clockwise
@@ -11,8 +12,14 @@ type UnwrappedTileConnection = (u8, u8);
 // an array containing the numeric representation for each connection on a tile
 type UnwrappedTileConnections = [UnwrappedTileConnection; 4];
 
+#[derive(Debug)]
 struct Tile {
     connections: TileConnections
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct UnwrappedTile {
+    connections: UnwrappedTileConnections
 }
 
 // turns a connections binary representation into a tuple of its points numeric position
@@ -37,6 +44,28 @@ fn deserialize_connection(connection: UnwrappedTileConnection) -> TileConnection
 
 fn deserialize_connections(connections: UnwrappedTileConnections) -> TileConnections {
     connections.map(|connection| deserialize_connection(connection))
+}
+
+impl Serialize for Tile {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let unwrapped_connections = serialize_connections(self.connections);
+        let unwrapped_tile = UnwrappedTile { connections: unwrapped_connections };
+        unwrapped_tile.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Tile {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let unwrapped_connections = UnwrappedTileConnections::deserialize(deserializer)?;
+        let connections = deserialize_connections(unwrapped_connections);
+        Ok(Tile { connections })
+    }
 }
 
 fn parse_standard_notation(notation: &str) -> UnwrappedTileConnections {
@@ -89,19 +118,8 @@ fn flip_connections(connections: TileConnections) -> TileConnections {
     connections.map(|connection| flip_points(connection))
 }
 
-#[tauri::command]
-fn test() -> UnwrappedTileConnections {
-    let tile = Tile {
-        // [0b0000_0011,0b0010_0100,0b1000_1000,0b0101_0000]
-        connections: deserialize_connections([(0, 1), (2, 5), (3, 7), (4, 6)])
-    };
-
-    serialize_connections(tile.connections)
-}
-
-#[tauri::command]
-fn get_possible_connections() -> Vec<UnwrappedTileConnections> {
-    let possible_connections = [
+fn get_possible_connections() -> Vec<TileConnections> {
+    [
         "12-34-56-78",
         "14-27-36-58",
         "15-26-37-48",
@@ -139,16 +157,23 @@ fn get_possible_connections() -> Vec<UnwrappedTileConnections> {
         "16-28-37-45",
     ]
         .map(|it| parse_standard_notation(it))
-        .map(|it| deserialize_connections(it));
+        .map(|it| deserialize_connections(it))
+        .to_vec()
+}
 
-    possible_connections.map(|it| serialize_connections(it)).to_vec()
+#[tauri::command]
+fn get_tile_stack() -> Vec<Tile> {
+    get_possible_connections()
+        .into_iter()
+        .map(|connections| Tile { connections })
+        .collect()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![test, get_possible_connections])
+        .invoke_handler(tauri::generate_handler![get_tile_stack])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
