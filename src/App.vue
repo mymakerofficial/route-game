@@ -14,23 +14,10 @@ const { data } = useQuery({
 </script>
 
 <template>
-  <main class="container">
-    <p>{{ data }}</p>
-    <div class="tile-container">
+  <main class="p-12 flex flex-col gap-12">
+    <div class="grid grid-cols-6 grid-rows-6 gap-0.5 p-1 bg-stone-950 rounded-xl w-2/3">
       <Tile v-for="(connections, index) in data" :key="index" :connections="connections" />
     </div>
+    <p class="p-2 bg-neutral-200 rounded-md font-mono">{{ data }}</p>
   </main>
 </template>
-
-<style>
-.tile-container {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-template-rows: repeat(6, minmax(0, 1fr));
-  max-height: 70vh;
-  aspect-ratio: 1;
-  gap: 0.1rem;
-  padding: 0.1rem;
-  background: #311202;
-}
-</style>
