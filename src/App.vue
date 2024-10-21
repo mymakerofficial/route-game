@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import {ref} from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import Tile from "@/components/Tile.vue";
 import {Connections} from "@/types.ts";
-import {Button} from "@/components/ui/button";
+import {useQuery} from "@tanstack/vue-query";
 
-const tiles = ref<Connections[]>([]);
-
-async function submit() {
-  tiles.value = await invoke("get_possible_connections");
-}
+const { data } = useQuery({
+  queryKey: ['get_possible_connections'],
+  queryFn: async () => {
+    return await invoke<Connections>("get_possible_connections");
+  },
+  initialData: []
+})
 </script>
 
 <template>
   <main class="container">
-    <Button @click="submit">submit</Button>
-    <p>{{ tiles }}</p>
+    <p>{{ data }}</p>
     <div class="tile-container">
-      <Tile v-for="(connections, index) in tiles" :key="index" :connections="connections" />
+      <Tile v-for="(connections, index) in data" :key="index" :connections="connections" />
     </div>
   </main>
 </template>
