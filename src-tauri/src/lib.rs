@@ -36,6 +36,9 @@ struct GameState {
 
 // turns a connections binary representation into a tuple of its points numeric position
 fn serialize_connection(connection: TileConnection) -> UnwrappedTileConnection {
+    if connection == 0 {
+        return (0, 0);
+    }
     let lowest = connection.trailing_zeros() as u8;
     let highest = 7 - (connection.leading_zeros() as u8);
     (lowest, highest)
@@ -222,6 +225,11 @@ fn get_tile_stack(state: tauri::State<GameState>) -> Vec<Tile> {
     state.tile_stack.clone()
 }
 
+#[tauri::command]
+fn get_game_board(state: tauri::State<GameState>) -> Vec<Tile> {
+    state.board.clone().to_vec()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -229,11 +237,12 @@ pub fn run() {
         .setup(|app| {
             app.manage(GameState {
                 tile_stack: generate_tile_stack(),
-                board: [Tile::default(); 6*6],
+                // filled with empty tiles
+                board: [Tile::default(); 36],
             });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_tile_stack])
+        .invoke_handler(tauri::generate_handler![get_tile_stack, get_game_board])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
