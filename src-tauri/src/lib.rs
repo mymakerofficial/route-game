@@ -1,22 +1,32 @@
 
+// a u8 where each lit up bit represents a point on a tile
+//  starting from the least significant bit on the bottom edge left point continuing anti-clockwise
+type TileConnection = u8;
+// an array containing the binary representation for each connection on a tile
+type TileConnections = [TileConnection; 4];
+
+// a tuple of numerically indexed points forming a connection on a tile,
+//  starting at 0, representing the bottom edge left point continuing anti-clockwise
+type UnwrappedTileConnection = (u8, u8);
+// an array containing the numeric representation for each connection on a tile
+type UnwrappedTileConnections = [UnwrappedTileConnection; 4];
+
 struct Tile {
-    // each connection between points is a u8 with the bits representing the connections
-    // the least significant bit is the left point on the bottom edge continuing anti-clockwise
-    connections: [u8; 4]
+    connections: TileConnections
 }
 
 // turns a connections binary representation into a tuple of its points numeric position
-fn serialize_connection(connection: u8) -> (u8, u8) {
+fn serialize_connection(connection: TileConnection) -> UnwrappedTileConnection {
     let lowest = connection.trailing_zeros() as u8;
     let highest = 7 - (connection.leading_zeros() as u8);
     (lowest, highest)
 }
 
-fn serialize_connections(connections: [u8; 4]) -> [(u8, u8); 4] {
+fn serialize_connections(connections: TileConnections) -> UnwrappedTileConnections {
     connections.map(|connection| serialize_connection(connection))
 }
 
-fn deserialize_connection(connection: (u8, u8)) -> u8 {
+fn deserialize_connection(connection: UnwrappedTileConnection) -> TileConnection {
     let (lowest, highest) = connection;
     let mut result = 0;
     for i in lowest..highest + 1 {
@@ -25,11 +35,11 @@ fn deserialize_connection(connection: (u8, u8)) -> u8 {
     result
 }
 
-fn deserialize_connections(connections: [(u8, u8); 4]) -> [u8; 4] {
+fn deserialize_connections(connections: UnwrappedTileConnections) -> TileConnections {
     connections.map(|connection| deserialize_connection(connection))
 }
 
-fn parse_standard_notation(notation: &str) -> [(u8, u8); 4] {
+fn parse_standard_notation(notation: &str) -> UnwrappedTileConnections {
     let mut connections = [(0, 0); 4];
     let mut i = 0;
     for connection in notation.split('-') {
@@ -41,16 +51,17 @@ fn parse_standard_notation(notation: &str) -> [(u8, u8); 4] {
 }
 
 // rotate the points on a tile by 90 degrees
-fn rotate_points(points: u8) -> u8 {
+fn rotate_points(points: TileConnection) -> TileConnection {
     points << 2 | points >> 6
 }
 
-fn rotate_connections(connections: [u8; 4]) -> [u8; 4] {
+// rotate the points on a tile by 90 degrees
+fn rotate_connections(connections: TileConnections) -> TileConnections {
     connections.map(|connection| rotate_points(connection))
 }
 
 // mirrors points on a diagonal axis based on their position on a tile
-fn mirror_points(points: u8) -> u8 {
+fn mirror_points(points: TileConnection) -> TileConnection {
     // AB-CD-EF-GH -> EF-GH-AB-CD
     let bottom = points & 0b0000_0011;
     let right = points & 0b0000_1100;
@@ -59,11 +70,13 @@ fn mirror_points(points: u8) -> u8 {
     bottom << 6 | right << 2 | top >> 2 | left >> 6
 }
 
-fn mirror_connections(connections: [u8; 4]) -> [u8; 4] {
+// mirrors points on a diagonal axis based on their position on a tile
+fn mirror_connections(connections: TileConnections) -> TileConnections {
     connections.map(|connection| mirror_points(connection))
 }
 
-fn flip_points(points: u8) -> u8 {
+// flips points so that they would match points in the same position on an adjacent tile
+fn flip_points(points: TileConnection) -> TileConnection {
     // AB-CD-EF-GH -> FE-HG-BA-DC
     let rotated = rotate_points(rotate_points(points));
     let odd = rotated & 0b1010_1010;
@@ -71,12 +84,13 @@ fn flip_points(points: u8) -> u8 {
     odd >> 1 | even << 1
 }
 
-fn flip_connections(connections: [u8; 4]) -> [u8; 4] {
+// flips points so that they would match points in the same position on an adjacent tile
+fn flip_connections(connections: TileConnections) -> TileConnections {
     connections.map(|connection| flip_points(connection))
 }
 
 #[tauri::command]
-fn test() -> [(u8, u8); 4] {
+fn test() -> UnwrappedTileConnections {
     let tile = Tile {
         // [0b0000_0011,0b0010_0100,0b1000_1000,0b0101_0000]
         connections: deserialize_connections([(0, 1), (2, 5), (3, 7), (4, 6)])
@@ -86,7 +100,7 @@ fn test() -> [(u8, u8); 4] {
 }
 
 #[tauri::command]
-fn get_possible_connections() -> Vec<[(u8, u8); 4]> {
+fn get_possible_connections() -> Vec<UnwrappedTileConnections> {
     let possible_connections = [
         "12-34-56-78",
         "14-27-36-58",
