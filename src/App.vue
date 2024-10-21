@@ -3,6 +3,7 @@ import {ref} from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import Tile from "@/components/Tile.vue";
 import {Connections} from "@/types.ts";
+import {Button} from "@/components/ui/button";
 
 const tiles = ref<Connections[]>([]);
 
@@ -13,7 +14,7 @@ async function submit() {
 
 <template>
   <main class="container">
-    <button @click="submit">submit</button>
+    <Button @click="submit">submit</Button>
     <p>{{ tiles }}</p>
     <div class="tile-container">
       <Tile v-for="(connections, index) in tiles" :key="index" :connections="connections" />
