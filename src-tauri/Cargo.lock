@@ -2539,6 +2539,7 @@ dependencies = [
 name = "route-game"
 version = "0.1.0"
 dependencies = [
+ "rand 0.7.3",
  "serde",
  "serde_json",
  "tauri",

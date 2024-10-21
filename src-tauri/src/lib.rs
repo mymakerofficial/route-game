@@ -1,4 +1,8 @@
+use rand::seq::SliceRandom;
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use tauri::Manager;
+use rand::{thread_rng, Rng};
+
 
 // a u8 where each lit up bit represents a point on a tile
 //  starting from the least significant bit on the bottom edge left point continuing anti-clockwise
@@ -12,7 +16,10 @@ type UnwrappedTileConnection = (u8, u8);
 // an array containing the numeric representation for each connection on a tile
 type UnwrappedTileConnections = [UnwrappedTileConnection; 4];
 
-#[derive(Debug)]
+// a 6x6 array of tiles representing the game board
+type GameBoard = [Tile; 6*6];
+
+#[derive(Debug, Default, Copy, Clone)]
 struct Tile {
     connections: TileConnections
 }
@@ -20,6 +27,11 @@ struct Tile {
 #[derive(Debug, Serialize, Deserialize)]
 struct UnwrappedTile {
     connections: UnwrappedTileConnections
+}
+
+struct GameState {
+    tile_stack: Vec<Tile>,
+    board: GameBoard,
 }
 
 // turns a connections binary representation into a tuple of its points numeric position
@@ -34,12 +46,12 @@ fn serialize_connections(connections: TileConnections) -> UnwrappedTileConnectio
 }
 
 fn deserialize_connection(connection: UnwrappedTileConnection) -> TileConnection {
-    let (lowest, highest) = connection;
-    let mut result = 0;
-    for i in lowest..highest + 1 {
-        result |= 1 << i;
-    }
-    result
+    let (low, high) = connection;
+    // set the bits at the low and high positions to 1
+    let mut res = 0;
+    res |= 1 << low;
+    res |= 1 << high;
+    res
 }
 
 fn deserialize_connections(connections: UnwrappedTileConnections) -> TileConnections {
@@ -80,13 +92,23 @@ fn parse_standard_notation(notation: &str) -> UnwrappedTileConnections {
 }
 
 // rotate the points on a tile by 90 degrees
-fn rotate_points(points: TileConnection) -> TileConnection {
+fn rotate_points_90(points: TileConnection) -> TileConnection {
     points << 2 | points >> 6
 }
 
 // rotate the points on a tile by 90 degrees
-fn rotate_connections(connections: TileConnections) -> TileConnections {
-    connections.map(|connection| rotate_points(connection))
+fn rotate_connections_90(connections: TileConnections) -> TileConnections {
+    connections.map(|connection| rotate_points_90(connection))
+}
+
+// rotate the points on a tile by 180 degrees
+fn rotate_points_180(points: TileConnection) -> TileConnection {
+    points << 4 | points >> 4
+}
+
+// rotate the points on a tile by 180 degrees
+fn rotate_connections_180(connections: TileConnections) -> TileConnections {
+    connections.map(|connection| rotate_points_180(connection))
 }
 
 // mirrors points on a diagonal axis based on their position on a tile
@@ -107,7 +129,7 @@ fn mirror_connections(connections: TileConnections) -> TileConnections {
 // flips points so that they would match points in the same position on an adjacent tile
 fn flip_points(points: TileConnection) -> TileConnection {
     // AB-CD-EF-GH -> FE-HG-BA-DC
-    let rotated = rotate_points(rotate_points(points));
+    let rotated = rotate_points_180(points);
     let odd = rotated & 0b1010_1010;
     let even = rotated & 0b0101_0101;
     odd >> 1 | even << 1
@@ -116,6 +138,20 @@ fn flip_points(points: TileConnection) -> TileConnection {
 // flips points so that they would match points in the same position on an adjacent tile
 fn flip_connections(connections: TileConnections) -> TileConnections {
     connections.map(|connection| flip_points(connection))
+}
+
+impl Tile {
+    fn rotate(&mut self) {
+        self.connections = rotate_connections_90(self.connections);
+    }
+
+    fn mirror(&mut self) {
+        self.connections = mirror_connections(self.connections);
+    }
+
+    fn flip(&mut self) {
+        self.connections = flip_connections(self.connections);
+    }
 }
 
 fn get_possible_connections() -> Vec<TileConnections> {
@@ -161,18 +197,42 @@ fn get_possible_connections() -> Vec<TileConnections> {
         .to_vec()
 }
 
-#[tauri::command]
-fn get_tile_stack() -> Vec<Tile> {
-    get_possible_connections()
+fn shuffle_tiles(tiles: &mut Vec<Tile>) {
+    tiles.shuffle(&mut thread_rng());
+    tiles.iter_mut().for_each(|mut tile| {
+        for _ in 0..thread_rng().gen_range(0, 4) {
+            tile.rotate();
+        }
+    });
+}
+
+fn generate_tile_stack() -> Vec<Tile> {
+    let mut tiles = get_possible_connections()
         .into_iter()
         .map(|connections| Tile { connections })
-        .collect()
+        .collect();
+
+    shuffle_tiles(&mut tiles);
+
+    tiles
+}
+
+#[tauri::command]
+fn get_tile_stack(state: tauri::State<GameState>) -> Vec<Tile> {
+    state.tile_stack.clone()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            app.manage(GameState {
+                tile_stack: generate_tile_stack(),
+                board: [Tile::default(); 6*6],
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![get_tile_stack])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

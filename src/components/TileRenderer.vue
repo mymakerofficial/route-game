@@ -3,9 +3,12 @@ import {Connections} from "@/types.ts";
 import {useTranslateConnections} from "@/composables/useTranslateConnections.ts";
 import {useTilePaths} from "@/composables/useTilePaths.ts";
 import colors from "tailwindcss/colors";
+import {HTMLAttributes} from "vue";
+import {cn} from "@/lib/utils.ts";
 
 const props = defineProps<{
   connections: Connections;
+  class?: HTMLAttributes["class"];
 }>();
 
 const SIZE = 180;
@@ -23,7 +26,7 @@ const paths = useTilePaths(translatedConnections, SCALE)
   <svg
     xmlns="http://www.w3.org/2000/svg"
     :viewBox="`0 0 ${SIZE} ${SIZE}`"
-    class="bg-stone-800 border-2 border-stone-900 size-full rounded-lg"
+    :class="cn('bg-stone-800 border-2 border-stone-900 rounded-lg aspect-square', props.class)"
   >
     <template
         v-for="(path, index) in paths"
