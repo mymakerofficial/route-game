@@ -25,7 +25,9 @@ struct Tile {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct UnwrappedTile {
+    is_empty: bool,
     connections: UnwrappedTileConnections
 }
 
@@ -76,7 +78,10 @@ impl Serialize for Tile {
         S: Serializer,
     {
         let unwrapped_connections = serialize_connections(self.connections);
-        let unwrapped_tile = UnwrappedTile { connections: unwrapped_connections };
+        let unwrapped_tile = UnwrappedTile {
+            is_empty: self.connections.iter().all(|&connection| connection == 0),
+            connections: unwrapped_connections
+        };
         unwrapped_tile.serialize(serializer)
     }
 }

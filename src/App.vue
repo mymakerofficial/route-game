@@ -18,7 +18,7 @@ const { mutateAsync: addPlayer } = useAddPlayer()
 </script>
 
 <template>
-  <main class="w-screen overflow-x-hidden p-12 flex flex-col gap-12">
+  <main class="p-12 flex flex-col gap-12">
     <div class="grid grid-cols-2 gap-12">
       <div>
         <GameGrid :tiles="board" class="max-w-screen-md" />

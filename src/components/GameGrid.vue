@@ -12,6 +12,6 @@ const props = defineProps<{
 
 <template>
   <div :class="cn('grid grid-cols-6 grid-rows-6 gap-0.5 p-1 bg-stone-950 rounded-xl aspect-square', props.class)">
-    <TileRenderer v-for="(tile, index) in tiles" :key="index" :connections="tile.connections" class="size-full" />
+    <TileRenderer v-for="(tile, index) in tiles" :key="index" :tile="tile" class="size-full" />
   </div>
 </template>

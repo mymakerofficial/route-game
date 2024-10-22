@@ -21,6 +21,6 @@ const { mutateAsync: handleRotate } = useRotateTile(props)
         <RotateCcwIcon class="size-5" />
       </Button>
     </div>
-    <TileRenderer :connections="tile.connections" class="w-12 md:w-16 xl:w-24" />
+    <TileRenderer :tile="tile" class="w-12 md:w-16 xl:w-24" />
   </div>
 </template>

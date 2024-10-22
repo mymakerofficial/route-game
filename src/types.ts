@@ -5,6 +5,7 @@ export type TranslatedConnection = { from: Point, to: Point };
 export type TranslatedConnections = [TranslatedConnection, TranslatedConnection, TranslatedConnection, TranslatedConnection];
 
 export type Tile = {
+  isEmpty: boolean;
   connections: Connections;
 }
 
