@@ -1,0 +1,19 @@
+import {useMutation, useQueryClient} from "@tanstack/vue-query";
+import {invoke} from "@tauri-apps/api/core";
+import {getPlayersQueryKey} from "@/composables/queries/useGetPlayers.ts";
+
+export function useRotateTile(props: {
+  playerIndex: number;
+  tileIndex: number;
+}) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async () => {
+      return await invoke("rotate_player_tile", props);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: getPlayersQueryKey() });
+    }
+  })
+}

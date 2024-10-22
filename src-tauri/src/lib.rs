@@ -1,8 +1,8 @@
+use std::sync::Mutex;
 use rand::seq::SliceRandom;
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
-use tauri::Manager;
+use tauri::{Manager, State};
 use rand::{thread_rng, Rng};
-
 
 // a u8 where each lit up bit represents a point on a tile
 //  starting from the least significant bit on the bottom edge left point continuing anti-clockwise
@@ -29,9 +29,18 @@ struct UnwrappedTile {
     connections: UnwrappedTileConnections
 }
 
-struct GameState {
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct Player {
+    position_on_board: usize,
+    position_on_tile: u8,
     tile_stack: Vec<Tile>,
+}
+
+struct GameState {
     board: GameBoard,
+    tile_stack: Vec<Tile>,
+    players: Vec<Player>,
 }
 
 // turns a connections binary representation into a tuple of its points numeric position
@@ -157,7 +166,34 @@ impl Tile {
     }
 }
 
-fn get_possible_connections() -> Vec<TileConnections> {
+impl GameState {
+    fn get_player(&mut self, player_index: usize) -> &mut Player {
+        &mut self.players[player_index]
+    }
+}
+
+impl Player {
+    fn draw_from(&mut self, from_stack: &mut Vec<Tile>) {
+        let tile = from_stack.pop().unwrap();
+        self.tile_stack.push(tile);
+    }
+
+    fn set_position(&mut self, position_on_board: usize, position_on_tile: u8) {
+        self.position_on_board = position_on_board;
+        self.position_on_tile = position_on_tile;
+    }
+
+    fn place_tile(&mut self, board: &mut GameBoard, tile_index: usize, position_on_board: usize) {
+        let tile = self.tile_stack.remove(tile_index);
+        board[position_on_board] = tile;
+    }
+
+    fn get_tile(&mut self, tile_index: usize) -> &mut Tile {
+        &mut self.tile_stack[tile_index]
+    }
+}
+
+fn get_tile_set() -> Vec<Tile> {
     [
         "12-34-56-78",
         "14-27-36-58",
@@ -197,12 +233,13 @@ fn get_possible_connections() -> Vec<TileConnections> {
     ]
         .map(|it| parse_standard_notation(it))
         .map(|it| deserialize_connections(it))
+        .map(|connections| Tile { connections })
         .to_vec()
 }
 
 fn shuffle_tiles(tiles: &mut Vec<Tile>) {
     tiles.shuffle(&mut thread_rng());
-    tiles.iter_mut().for_each(|mut tile| {
+    tiles.iter_mut().for_each(|tile| {
         for _ in 0..thread_rng().gen_range(0, 4) {
             tile.rotate();
         }
@@ -210,23 +247,46 @@ fn shuffle_tiles(tiles: &mut Vec<Tile>) {
 }
 
 fn generate_tile_stack() -> Vec<Tile> {
-    let mut tiles = get_possible_connections()
-        .into_iter()
-        .map(|connections| Tile { connections })
-        .collect();
-
+    let mut tiles = get_tile_set();
     shuffle_tiles(&mut tiles);
 
     tiles
 }
 
 #[tauri::command]
-fn get_tile_stack(state: tauri::State<GameState>) -> Vec<Tile> {
+fn add_player(state: State<'_, Mutex<GameState>>) {
+    let mut state = state.lock().unwrap();
+
+    let mut new_player = Player::default();
+
+    new_player.draw_from(&mut state.tile_stack);
+    new_player.draw_from(&mut state.tile_stack);
+    new_player.draw_from(&mut state.tile_stack);
+
+    state.players.push(new_player);
+}
+
+#[tauri::command]
+fn rotate_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, tile_index: usize) {
+    let mut state = state.lock().unwrap();
+    state.get_player(player_index).get_tile(tile_index).rotate();
+}
+
+#[tauri::command]
+fn get_tile_stack(state: State<'_, Mutex<GameState>>) -> Vec<Tile> {
+    let state = state.lock().unwrap();
     state.tile_stack.clone()
 }
 
 #[tauri::command]
-fn get_game_board(state: tauri::State<GameState>) -> Vec<Tile> {
+fn get_players(state: State<'_, Mutex<GameState>>) -> Vec<Player> {
+    let state = state.lock().unwrap();
+    state.players.clone()
+}
+
+#[tauri::command]
+fn get_game_board(state: State<'_, Mutex<GameState>>) -> Vec<Tile> {
+    let state = state.lock().unwrap();
     state.board.clone().to_vec()
 }
 
@@ -235,14 +295,15 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            app.manage(GameState {
+            app.manage(Mutex::new(GameState {
                 tile_stack: generate_tile_stack(),
                 // filled with empty tiles
                 board: [Tile::default(); 36],
-            });
+                players: vec![],
+            }));
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_tile_stack, get_game_board])
+        .invoke_handler(tauri::generate_handler![get_tile_stack, get_players, get_game_board, add_player, rotate_player_tile])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

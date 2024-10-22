@@ -7,3 +7,9 @@ export type TranslatedConnections = [TranslatedConnection, TranslatedConnection,
 export type Tile = {
   connections: Connections;
 }
+
+export type Player = {
+  positionOnBoard: number;
+  positionOnTile: number;
+  tileStack: Tile[];
+}
