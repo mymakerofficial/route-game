@@ -175,6 +175,15 @@ impl GameState {
     fn get_player(&mut self, player_index: usize) -> &mut Player {
         &mut self.players[player_index]
     }
+
+    fn place_tile(&mut self, player_index: usize, tile_index: usize, position_on_board: usize) {
+        let player = &mut self.players[player_index];
+        let board = &mut self.board;
+        player.place_tile(board, tile_index, position_on_board);
+
+        let tile_stack = &mut self.tile_stack;
+        player.draw_from(tile_stack);
+    }
 }
 
 impl Player {
@@ -278,6 +287,12 @@ fn rotate_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, t
 }
 
 #[tauri::command]
+fn place_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, tile_index: usize, position_on_board: usize) {
+    let mut state = state.lock().unwrap();
+    state.place_tile(player_index, tile_index, position_on_board);
+}
+
+#[tauri::command]
 fn get_tile_stack(state: State<'_, Mutex<GameState>>) -> Vec<Tile> {
     let state = state.lock().unwrap();
     state.tile_stack.clone()
@@ -308,7 +323,7 @@ pub fn run() {
             }));
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_tile_stack, get_players, get_game_board, add_player, rotate_player_tile])
+        .invoke_handler(tauri::generate_handler![get_tile_stack, get_players, get_game_board, add_player, rotate_player_tile, place_player_tile])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

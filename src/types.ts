@@ -14,3 +14,8 @@ export type Player = {
   positionOnTile: number;
   tileStack: Tile[];
 }
+
+export type PlayerTilePointer = {
+  playerIndex: number;
+  tileIndex: number;
+}
