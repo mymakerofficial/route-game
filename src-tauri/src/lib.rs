@@ -172,6 +172,12 @@ impl Tile {
 }
 
 impl GameState {
+    fn reset(&mut self) {
+        self.tile_stack = generate_tile_stack();
+        self.board = [Tile::default(); 36];
+        self.players = vec![];
+    }
+
     fn get_player(&mut self, player_index: usize) -> &mut Player {
         &mut self.players[player_index]
     }
@@ -267,6 +273,16 @@ fn generate_tile_stack() -> Vec<Tile> {
     tiles
 }
 
+impl Default for GameState {
+    fn default() -> Self {
+        GameState {
+            tile_stack: generate_tile_stack(),
+            board: [Tile::default(); 36],
+            players: vec![],
+        }
+    }
+}
+
 #[tauri::command]
 fn add_player(state: State<'_, Mutex<GameState>>) {
     let mut state = state.lock().unwrap();
@@ -310,20 +326,29 @@ fn get_game_board(state: State<'_, Mutex<GameState>>) -> Vec<Tile> {
     state.board.clone().to_vec()
 }
 
+#[tauri::command]
+fn reset_game_state(state: State<'_, Mutex<GameState>>) {
+    let mut state = state.lock().unwrap();
+    state.reset();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            app.manage(Mutex::new(GameState {
-                tile_stack: generate_tile_stack(),
-                // filled with empty tiles
-                board: [Tile::default(); 36],
-                players: vec![],
-            }));
+            app.manage(Mutex::new(GameState::default()));
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_tile_stack, get_players, get_game_board, add_player, rotate_player_tile, place_player_tile])
+        .invoke_handler(tauri::generate_handler![
+            get_tile_stack,
+            get_players,
+            get_game_board,
+            add_player,
+            rotate_player_tile,
+            place_player_tile,
+            reset_game_state
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
