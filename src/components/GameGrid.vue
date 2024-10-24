@@ -1,21 +1,39 @@
 <script setup lang="ts">
-import TileRenderer from "@/components/TileRenderer.vue";
 import {Tile} from "@/types.ts";
-import {HTMLAttributes} from "vue";
+import {computed, HTMLAttributes} from "vue";
 import {cn} from "@/lib/utils.ts";
-import BoardTilePlaceholder from "@/components/BoardTilePlaceholder.vue";
+import EmbeddedTileRenderer from "@/components/EmbeddedTileRenderer.vue";
+import {positionOnBoardToPoint} from "@/lib/translate.ts";
 
-const props = defineProps<{
-  tiles: Tile[];
-  class?: HTMLAttributes["class"];
+const {
+  tiles,
+  size = 1000,
+  ...props
+} = defineProps<{
+  tiles: Tile[]
+  size?: number
+  class?: HTMLAttributes["class"]
 }>()
+
+const tileSize = computed(() => {
+  return size / 6
+})
+
+function getTransform(index: number): string {
+  const { x, y } = positionOnBoardToPoint(index).scale(tileSize.value)
+  return `translate(${x}, ${y})`
+}
 </script>
 
 <template>
-  <div :class="cn('grid grid-cols-6 grid-rows-6 gap-0.5 p-1 bg-stone-950 rounded-xl aspect-square', props.class)">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    :viewBox="`0 0 ${size} ${size}`"
+    :class="cn('aspect-square border border-border', props.class)"
+  >
     <template v-for="(tile, index) in tiles" :key="index">
-      <BoardTilePlaceholder v-if="tile.isEmpty" :position-on-board="index" />
-      <TileRenderer v-else :tile="tile" />
+      <!--      <BoardTilePlaceholder v-if="tile.isEmpty" :position-on-board="index" />-->
+      <EmbeddedTileRenderer :tile="tile" :transform="getTransform(index)" :size="tileSize" />
     </template>
-  </div>
+  </svg>
 </template>

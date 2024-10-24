@@ -11,6 +11,7 @@ import {useAddPlayer} from "@/composables/mutations/useAddPlayer.ts";
 import {useGetTileStack} from "@/composables/queries/useGetTileStack.ts";
 import {useGetGameBoard} from "@/composables/queries/useGetGameBoard.ts";
 import {useResetGame} from "@/composables/mutations/useResetGame.ts";
+import {ref} from "vue";
 
 const { data: stack } = useGetTileStack()
 const { data: board } = useGetGameBoard()
