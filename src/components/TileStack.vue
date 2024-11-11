@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import TileRenderer from "@/components/TileRenderer.vue";
-import {Tile} from "@/types.ts";
+import {RawTile} from "@/types.ts";
 
 defineProps<{
-  tiles: Tile[];
+  tiles: RawTile[];
 }>()
 </script>
 

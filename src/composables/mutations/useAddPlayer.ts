@@ -8,7 +8,7 @@ export function useAddPlayer() {
 
   return useMutation({
     mutationFn: async () => {
-      return await invoke("add_player");
+      await invoke("add_player");
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: getPlayersQueryKey() });

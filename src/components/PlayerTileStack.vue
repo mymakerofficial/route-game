@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import {Tile} from "@/types.ts";
+import {RawTile} from "@/types.ts";
 import PlayableTile from "@/components/PlayableTile.vue";
 
 defineProps<{
-  tiles: Tile[];
+  tiles: RawTile[];
   playerIndex: number;
 }>()
 </script>

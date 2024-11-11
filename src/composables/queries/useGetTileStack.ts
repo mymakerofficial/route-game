@@ -1,5 +1,5 @@
 import {useQuery} from "@tanstack/vue-query";
-import {Tile} from "@/types.ts";
+import {RawTile} from "@/types.ts";
 import {invoke} from "@tauri-apps/api/core";
 
 export function getTileStackQueryKey() {
@@ -9,7 +9,7 @@ export function getTileStackQueryKey() {
 export function useGetTileStack() {
   return useQuery({
     queryKey: getTileStackQueryKey(),
-    queryFn: async (): Promise<Tile[]> => {
+    queryFn: async (): Promise<RawTile[]> => {
       return await invoke("get_tile_stack");
     },
     initialData: []

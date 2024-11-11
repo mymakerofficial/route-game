@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import {Tile} from "@/types.ts";
+import {RawPlayer, RawTile} from "@/types.ts";
 import {computed, HTMLAttributes} from "vue";
 import {cn} from "@/lib/utils.ts";
 import EmbeddedTileRenderer from "@/components/EmbeddedTileRenderer.vue";
-import {positionOnBoardToPoint} from "@/lib/translate.ts";
+import {Point} from "@/lib/point.ts";
+import EmbeddedPlayerRenderer from "@/components/EmbeddedPlayerRenderer.vue";
 
 const {
   tiles,
+  players,
   size = 1000,
   ...props
 } = defineProps<{
-  tiles: Tile[]
+  tiles: RawTile[]
+  players: RawPlayer[]
   size?: number
   class?: HTMLAttributes["class"]
 }>()
@@ -19,9 +22,8 @@ const tileSize = computed(() => {
   return size / 6
 })
 
-function getTransform(index: number): string {
-  const { x, y } = positionOnBoardToPoint(index).scale(tileSize.value)
-  return `translate(${x}, ${y})`
+function getTileTransform(position: number): string {
+  return Point.fromPositionOnBoard(position).scale(tileSize.value).toTransform()
 }
 </script>
 
@@ -33,7 +35,10 @@ function getTransform(index: number): string {
   >
     <template v-for="(tile, index) in tiles" :key="index">
       <!--      <BoardTilePlaceholder v-if="tile.isEmpty" :position-on-board="index" />-->
-      <EmbeddedTileRenderer :tile="tile" :transform="getTransform(index)" :size="tileSize" />
+      <EmbeddedTileRenderer :tile="tile" :transform="getTileTransform(index)" :tile-size="tileSize" />
+    </template>
+    <template v-for="(player, index) in players" :key="index">
+      <EmbeddedPlayerRenderer :player="player" :tile-size="tileSize" />
     </template>
   </svg>
 </template>

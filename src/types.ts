@@ -1,19 +1,15 @@
-import {Point} from "@/lib/point.ts";
+export type RawConnection = [number, number];
+export type RawConnections = [RawConnection, RawConnection, RawConnection, RawConnection];
 
-export type Connection = [number, number];
-export type Connections = [Connection, Connection, Connection, Connection];
-export type TranslatedConnection = { from: Point, to: Point };
-export type TranslatedConnections = [TranslatedConnection, TranslatedConnection, TranslatedConnection, TranslatedConnection];
-
-export type Tile = {
+export type RawTile = {
   isEmpty: boolean;
-  connections: Connections;
+  connections: RawConnections;
 }
 
-export type Player = {
+export type RawPlayer = {
   positionOnBoard: number;
   positionOnTile: number;
-  tileStack: Tile[];
+  tileStack: RawTile[];
 }
 
 export type PlayerTilePointer = {

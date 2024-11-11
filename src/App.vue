@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import {invoke} from "@tauri-apps/api/core";
-import {Player, Tile} from "@/types.ts";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/vue-query";
 import GameGrid from "@/components/GameGrid.vue";
 import TileStack from "@/components/TileStack.vue";
 import {Button} from "@/components/ui/button";
@@ -11,7 +8,6 @@ import {useAddPlayer} from "@/composables/mutations/useAddPlayer.ts";
 import {useGetTileStack} from "@/composables/queries/useGetTileStack.ts";
 import {useGetGameBoard} from "@/composables/queries/useGetGameBoard.ts";
 import {useResetGame} from "@/composables/mutations/useResetGame.ts";
-import {ref} from "vue";
 
 const { data: stack } = useGetTileStack()
 const { data: board } = useGetGameBoard()
@@ -24,7 +20,7 @@ const { mutateAsync: resetGame } = useResetGame()
   <main class="p-12 flex flex-col gap-12">
     <div class="grid grid-cols-2 gap-12">
       <div>
-        <GameGrid :tiles="board" class="max-w-screen-md" />
+        <GameGrid :tiles="board" :players="players" class="max-w-screen-md" />
       </div>
       <div class="flex flex-col gap-12">
         <div class="space-y-2">

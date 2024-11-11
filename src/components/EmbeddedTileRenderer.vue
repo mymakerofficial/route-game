@@ -1,34 +1,30 @@
 <script setup lang="ts">
-import {Tile} from "@/types.ts";
+import {RawTile} from "@/types.ts";
 import {useTranslateConnections} from "@/composables/useTranslateConnections.ts";
 import {useTilePaths} from "@/composables/useTilePaths.ts";
-import {computed, SVGAttributes} from "vue";
+import {SVGAttributes} from "vue";
 
 const {
   tile,
-  size = 180,
+  tileSize = 180,
   transform,
 } = defineProps<{
-  tile: Tile
-  size?: number
+  tile: RawTile
+  tileSize?: number
   transform?: SVGAttributes["transform"]
 }>()
 
-const scale = computed(() => {
-  return size / 3
-})
-
 const translatedConnections = useTranslateConnections(() => tile.connections)
-const paths = useTilePaths(translatedConnections, scale)
+const paths = useTilePaths(translatedConnections, tileSize)
 </script>
 
 <template>
   <g :transform="transform">
     <rect
-      :width="size"
-      :height="size"
-      :stroke-width="size * 0.04"
-      :rx="size * 0.05"
+      :width="tileSize"
+      :height="tileSize"
+      :stroke-width="tileSize * 0.04"
+      :rx="tileSize * 0.05"
       class="fill-stone-800 stroke-stone-900"
     />
     <g v-if="!tile.isEmpty" class="stroke-neutral-50">
@@ -38,19 +34,19 @@ const paths = useTilePaths(translatedConnections, scale)
       >
         <path
           :d="path"
-          :stroke-width="size * 0.1"
+          :stroke-width="tileSize * 0.1"
           fill="transparent"
           class="stroke-stone-800"
         />
         <path
           :d="path"
-          :stroke-width="size * 0.04"
+          :stroke-width="tileSize * 0.04"
           fill="transparent"
           class="opacity-50"
         />
         <path
           :d="path"
-          :stroke-width="size * 0.018"
+          :stroke-width="tileSize * 0.018"
           fill="transparent"
         />
       </template>

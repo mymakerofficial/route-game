@@ -2,12 +2,12 @@
 import {Button} from "@/components/ui/button";
 import TileRenderer from "@/components/TileRenderer.vue";
 import {HandIcon, GrabIcon, RotateCcwIcon} from "lucide-vue-next";
-import {Tile} from "@/types.ts";
+import {RawTile} from "@/types.ts";
 import {useRotateTile} from "@/composables/mutations/useRotateTile.ts";
 import {useGrabTile} from "@/composables/useGrabTile.ts";
 
 const { tile, ...playerTilePointer } = defineProps<{
-  tile: Tile;
+  tile: RawTile;
   playerIndex: number;
   tileIndex: number;
 }>()

@@ -1,5 +1,5 @@
 import {useQuery} from "@tanstack/vue-query";
-import {Player} from "@/types.ts";
+import {RawPlayer} from "@/types.ts";
 import {invoke} from "@tauri-apps/api/core";
 
 export function getPlayersQueryKey() {
@@ -9,7 +9,7 @@ export function getPlayersQueryKey() {
 export function useGetPlayers() {
   return useQuery({
     queryKey: getPlayersQueryKey(),
-    queryFn: async (): Promise<Player[]> => {
+    queryFn: async (): Promise<RawPlayer[]> => {
       return await invoke("get_players");
     },
     initialData: []
