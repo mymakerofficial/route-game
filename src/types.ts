@@ -6,9 +6,12 @@ export type RawTile = {
   connections: RawConnections;
 }
 
-export type RawPlayer = {
+export type RawPosition = {
   positionOnBoard: number;
   positionOnTile: number;
+}
+
+export type RawPlayer = RawPosition & {
   tileStack: RawTile[];
 }
 

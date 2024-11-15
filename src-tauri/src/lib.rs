@@ -284,22 +284,18 @@ impl Default for GameState {
 }
 
 #[tauri::command]
-fn add_player(state: State<'_, Mutex<GameState>>) {
+fn add_player(state: State<'_, Mutex<GameState>>, position_on_board: usize, position_on_tile: u8) {
     let mut state = state.lock().unwrap();
 
     let mut new_player = Player::default();
+
+    new_player.set_position(position_on_board, position_on_tile);
 
     new_player.draw_from(&mut state.tile_stack);
     new_player.draw_from(&mut state.tile_stack);
     new_player.draw_from(&mut state.tile_stack);
 
     state.players.push(new_player);
-}
-
-#[tauri::command]
-fn set_player_position(state: State<'_, Mutex<GameState>>, player_index: usize, position_on_board: usize, position_on_tile: u8) {
-    let mut state = state.lock().unwrap();
-    state.get_player(player_index).set_position(position_on_board, position_on_tile);
 }
 
 #[tauri::command]
@@ -353,8 +349,7 @@ pub fn run() {
             add_player,
             rotate_player_tile,
             place_player_tile,
-            reset_game_state,
-            set_player_position
+            reset_game_state
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

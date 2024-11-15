@@ -5,9 +5,11 @@ import {cn} from "@/lib/utils.ts";
 import EmbeddedTileRenderer from "@/components/EmbeddedTileRenderer.vue";
 import EmbeddedPlayerRenderer from "@/components/EmbeddedPlayerRenderer.vue";
 import {getNotches} from "@/lib/translate.ts";
+import {useAddPlayer} from "@/composables/mutations/useAddPlayer.ts";
 
 const {
   tiles,
+  players,
   size = 1000,
   ...props
 } = defineProps<{
@@ -20,6 +22,12 @@ const {
 const tileSize = computed(() => {
   return size / 6
 })
+
+const notches = computed(() => {
+  return getNotches().filter((notch) => !players.some((player) => notch.equals(player)))
+})
+
+const { mutate: addPlayer } = useAddPlayer()
 </script>
 
 <template>
@@ -31,17 +39,20 @@ const tileSize = computed(() => {
     <template v-for="(tile, index) in tiles" :key="index">
       <EmbeddedTileRenderer :tile="tile" :position="index" :tile-size="tileSize" />
     </template>
-    <template v-for="(player, index) in players" :key="index">
-      <EmbeddedPlayerRenderer :player="player" :tile-size="tileSize" />
-    </template>
-    <template v-for="(position, index) in getNotches()" :key="index">
+    <template v-for="(position, index) in notches" :key="index">
       <rect
         :width="tileSize * 0.2"
         :height="tileSize * 0.2"
         :rx="tileSize * 0.05"
+        :stroke-width="tileSize * 0.04"
         :transform="position.toPoint(0.9).scale(tileSize).offset(-tileSize * 0.1).toTransform()"
-        class="fill-neutral-100"
+        class="fill-stone-100 stroke-stone-900 cursor-pointer"
+        role="button"
+        @click="() => addPlayer(position)"
       />
+    </template>
+    <template v-for="(player, index) in players" :key="index">
+      <EmbeddedPlayerRenderer :player="player" :tile-size="tileSize" />
     </template>
   </svg>
 </template>
