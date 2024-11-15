@@ -3,12 +3,11 @@ import {RawPlayer, RawTile} from "@/types.ts";
 import {computed, HTMLAttributes} from "vue";
 import {cn} from "@/lib/utils.ts";
 import EmbeddedTileRenderer from "@/components/EmbeddedTileRenderer.vue";
-import {Point} from "@/lib/point.ts";
 import EmbeddedPlayerRenderer from "@/components/EmbeddedPlayerRenderer.vue";
+import {getNotches} from "@/lib/translate.ts";
 
 const {
   tiles,
-  players,
   size = 1000,
   ...props
 } = defineProps<{
@@ -21,10 +20,6 @@ const {
 const tileSize = computed(() => {
   return size / 6
 })
-
-function getTileTransform(position: number): string {
-  return Point.fromPositionOnBoard(position).scale(tileSize.value).toTransform()
-}
 </script>
 
 <template>
@@ -34,11 +29,19 @@ function getTileTransform(position: number): string {
     :class="cn('aspect-square border border-border', props.class)"
   >
     <template v-for="(tile, index) in tiles" :key="index">
-      <!--      <BoardTilePlaceholder v-if="tile.isEmpty" :position-on-board="index" />-->
-      <EmbeddedTileRenderer :tile="tile" :transform="getTileTransform(index)" :tile-size="tileSize" />
+      <EmbeddedTileRenderer :tile="tile" :position="index" :tile-size="tileSize" />
     </template>
     <template v-for="(player, index) in players" :key="index">
       <EmbeddedPlayerRenderer :player="player" :tile-size="tileSize" />
+    </template>
+    <template v-for="(position, index) in getNotches()" :key="index">
+      <rect
+        :width="tileSize * 0.2"
+        :height="tileSize * 0.2"
+        :rx="tileSize * 0.05"
+        :transform="position.toPoint(0.9).scale(tileSize).offset(-tileSize * 0.1).toTransform()"
+        class="fill-neutral-100"
+      />
     </template>
   </svg>
 </template>

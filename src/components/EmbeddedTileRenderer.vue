@@ -1,21 +1,26 @@
 <script setup lang="ts">
 import {RawTile} from "@/types.ts";
-import {useTranslateConnections} from "@/composables/useTranslateConnections.ts";
+import {useConnectionsFromRawConnections} from "@/composables/useConnectionsFromRawConnections.ts";
 import {useTilePaths} from "@/composables/useTilePaths.ts";
-import {SVGAttributes} from "vue";
+import {Point} from "@/lib/point.ts";
+import {computed} from "vue";
 
 const {
   tile,
+  position = 0,
   tileSize = 180,
-  transform,
 } = defineProps<{
   tile: RawTile
+  position?: number
   tileSize?: number
-  transform?: SVGAttributes["transform"]
 }>()
 
-const translatedConnections = useTranslateConnections(() => tile.connections)
-const paths = useTilePaths(translatedConnections, tileSize)
+const transform = computed(() => {
+  return Point.fromPositionOnBoard(position).scale(tileSize).toTransform()
+})
+
+const connections = useConnectionsFromRawConnections(() => tile.connections)
+const paths = useTilePaths(connections, tileSize)
 </script>
 
 <template>

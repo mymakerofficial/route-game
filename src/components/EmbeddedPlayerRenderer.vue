@@ -2,6 +2,7 @@
 import {RawPlayer} from "@/types.ts";
 import {computed} from "vue";
 import {Point} from "@/lib/point.ts";
+import {Position} from "@/lib/position.ts";
 
 const {
   player,
@@ -14,10 +15,9 @@ const {
 const size = computed(() => tileSize * 0.1)
 
 const transform = computed(() => {
-  return Point
-      .fromPositionOnTile(player.positionOnTile)
-      .translateToBoard()
-      .add(Point.fromPositionOnBoard(player.positionOnBoard))
+  return Position
+      .fromRaw(player)
+      .toPoint(0.9)
       .scale(tileSize)
       .toTransform()
 })

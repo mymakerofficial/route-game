@@ -1,6 +1,5 @@
-import {RawConnections } from "@/types.ts";
 import {Point} from "@/lib/point.ts";
-import {Connection} from "@/lib/connection.ts";
+import {Position} from "@/lib/position.ts";
 
 export function positionOnTileToPoint(position: number): Point {
   switch (position) {
@@ -21,6 +20,27 @@ export function positionOnBoardToPoint(position: number): Point {
   return new Point(x, y)
 }
 
-export function translateConnections(connections: RawConnections): Connection[] {
-  return connections.map((it) => Connection.fromRawConnection(it));
+function doRow(row: number, g: number) {
+  return Array.from({ length: 12 }, (_, i) => {
+    const positionOnBoard = Math.floor(i / 2) + (row * 6)
+    const positionOnTile = g + i % 2
+    return Position.fromRaw({ positionOnBoard, positionOnTile })
+  });
+}
+
+function doCol(col: number, g: number) {
+  return Array.from({ length: 12 }, (_, i) => {
+    const positionOnBoard = col + Math.floor(i / 2) * 6
+    const positionOnTile = g + i % 2
+    return Position.fromRaw({ positionOnBoard, positionOnTile })
+  })
+}
+
+export function getNotches() {
+  return [
+    ...doRow(0, 4),
+    ...doCol(0, 6),
+    ...doCol(5, 2),
+    ...doRow(5, 0),
+  ]
 }
