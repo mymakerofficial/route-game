@@ -34,7 +34,7 @@ const { mutate: addPlayer } = useAddPlayer()
   <svg
     xmlns="http://www.w3.org/2000/svg"
     :viewBox="`0 0 ${size} ${size}`"
-    :class="cn('aspect-square border border-border', props.class)"
+    :class="cn('aspect-square border-4 border-stone-900 rounded-lg bg-stone-900', props.class)"
   >
     <template v-for="(tile, index) in tiles" :key="index">
       <EmbeddedTileRenderer :tile="tile" :position="index" :tile-size="tileSize" />

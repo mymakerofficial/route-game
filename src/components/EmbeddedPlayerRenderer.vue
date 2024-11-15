@@ -17,7 +17,7 @@ const size = computed(() => tileSize * 0.1)
 const transform = computed(() => {
   return Position
       .fromRaw(player)
-      .toPoint(0.9)
+      .toPoint(0.75)
       .scale(tileSize)
       .toTransform()
 })

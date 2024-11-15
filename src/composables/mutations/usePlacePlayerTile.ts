@@ -9,11 +9,11 @@ type PlacePlayerTileProps = PlayerTilePointer & {
   positionOnBoard: number;
 }
 
-export function usePlacePlayerTile() {
+export function usePlacePlayerTile(props: PlacePlayerTileProps) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (props: PlacePlayerTileProps) => {
+    mutationFn: async () => {
       return await invoke("place_player_tile", props);
     },
     onSuccess: async () => {
