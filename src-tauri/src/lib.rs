@@ -1,8 +1,8 @@
-use std::sync::Mutex;
 use rand::seq::SliceRandom;
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
-use tauri::{Manager, State};
 use rand::{thread_rng, Rng};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::sync::Mutex;
+use tauri::{Manager, State};
 
 // a u8 where each lit up bit represents a point on a tile
 //  starting from the least significant bit on the bottom edge left point continuing anti-clockwise
@@ -31,12 +31,19 @@ struct UnwrappedTile {
     connections: UnwrappedTileConnections
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, Clone)]
 struct Player {
     position_on_board: usize,
-    position_on_tile: u8,
+    tile_position_mask: u8,
     tile_stack: Vec<Tile>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UnwrappedPlayer {
+    position_on_board: usize,
+    position_on_tile: u8,
+    tile_stack: Vec<UnwrappedTile>,
 }
 
 struct GameState {
@@ -50,13 +57,17 @@ fn serialize_connection(connection: TileConnection) -> UnwrappedTileConnection {
     if connection == 0 {
         return (0, 0);
     }
-    let lowest = connection.trailing_zeros() as u8;
-    let highest = 7 - (connection.leading_zeros() as u8);
+    let lowest = connection.leading_zeros() as u8;
+    let highest = 7 - (connection.trailing_zeros() as u8);
     (lowest, highest)
 }
 
 fn serialize_connections(connections: TileConnections) -> UnwrappedTileConnections {
     connections.map(|connection| serialize_connection(connection))
+}
+
+fn serialize_position_on_tile(tile_position_mask: u8) -> u8 {
+    tile_position_mask.leading_zeros() as u8
 }
 
 fn deserialize_connection(connection: UnwrappedTileConnection) -> TileConnection {
@@ -70,6 +81,10 @@ fn deserialize_connection(connection: UnwrappedTileConnection) -> TileConnection
 
 fn deserialize_connections(connections: UnwrappedTileConnections) -> TileConnections {
     connections.map(|connection| deserialize_connection(connection))
+}
+
+fn deserialize_position_on_tile(tile_position: u8) -> u8 {
+    1 << (7 - tile_position)
 }
 
 impl Serialize for Tile {
@@ -94,6 +109,26 @@ impl<'de> Deserialize<'de> for Tile {
         let unwrapped_connections = UnwrappedTileConnections::deserialize(deserializer)?;
         let connections = deserialize_connections(unwrapped_connections);
         Ok(Tile { connections })
+    }
+}
+
+impl Serialize for Player {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let unwrapped_player = UnwrappedPlayer {
+            position_on_board: self.position_on_board,
+            position_on_tile: serialize_position_on_tile(self.tile_position_mask),
+            tile_stack: self.tile_stack.clone().iter().map(|tile| {
+                let unwrapped_connections = serialize_connections(tile.connections);
+                UnwrappedTile {
+                    is_empty: tile.connections.iter().all(|&connection| connection == 0),
+                    connections: unwrapped_connections
+                }
+            }).collect()
+        };
+        unwrapped_player.serialize(serializer)
     }
 }
 
@@ -157,6 +192,48 @@ fn flip_connections(connections: TileConnections) -> TileConnections {
     connections.map(|connection| flip_points(connection))
 }
 
+// finds the connection that goes from the specified position on the tile
+//  and returns the position on the tile when the connection is walked across
+fn walk_connection(connections: TileConnections, source_position_mask: u8) -> u8 {
+    println!("walking source: {} {:#010b}", serialize_position_on_tile(source_position_mask), source_position_mask);
+    // find the connection that has a bit high in the position given
+    for connection in connections.iter() {
+        if connection & source_position_mask != 0 {
+            // we found the connection,
+            //  the other high bit is the position on the tile we end up in
+            let destination_mask = connection ^ source_position_mask;
+            println!(
+                "walking connections: {:?} {:#010b} {:?} {:#010b} {:?} {:#010b} {:?} {:#010b}",
+                serialize_connection(connections[0]),
+                connections[0],
+                serialize_connection(connections[1]),
+                connections[1],
+                serialize_connection(connections[2]),
+                connections[2],
+                serialize_connection(connections[3]),
+                connections[3]
+            );
+            return destination_mask;
+        }
+    }
+    panic!("no connection found");
+}
+
+fn transition_tile(tile_position_mask: u8) -> isize {
+    // todo this can probably be optimized
+    match tile_position_mask {
+        0b0000_0001 => -1,
+        0b0000_0010 => -1,
+        0b0000_0100 => -6,
+        0b0000_1000 => -6,
+        0b0001_0000 => 1,
+        0b0010_0000 => 1,
+        0b0100_0000 => 6,
+        0b1000_0000 => 6,
+        _ => panic!("invalid tile position mask")
+    }
+}
+
 impl Tile {
     fn rotate(&mut self) {
         self.connections = rotate_connections_90(self.connections);
@@ -189,6 +266,31 @@ impl GameState {
 
         let tile_stack = &mut self.tile_stack;
         player.draw_from(tile_stack);
+
+        self.update_positions();
+    }
+
+    fn update_positions(&mut self) {
+        for player in self.players.iter_mut() {
+            // get the tile the player is standing on
+            let tile = self.board[player.position_on_board];
+
+            let new_position = walk_connection(tile.connections, player.tile_position_mask);
+
+            println!("walked: {} {:#010b}", serialize_position_on_tile(new_position), new_position);
+
+            let transition = transition_tile(new_position);
+
+            println!("moved: {} {}", player.position_on_board, transition);
+
+            let new_position = flip_points(new_position);
+
+            println!("flipped: {} {:#010b}", serialize_position_on_tile(new_position), new_position);
+
+            player.tile_position_mask = new_position;
+
+            player.position_on_board = (player.position_on_board as isize + transition) as usize;
+        }
     }
 }
 
@@ -198,9 +300,9 @@ impl Player {
         self.tile_stack.push(tile);
     }
 
-    fn set_position(&mut self, position_on_board: usize, position_on_tile: u8) {
+    fn set_position(&mut self, position_on_board: usize, tile_position_mask: u8) {
         self.position_on_board = position_on_board;
-        self.position_on_tile = position_on_tile;
+        self.tile_position_mask = tile_position_mask;
     }
 
     fn place_tile(&mut self, board: &mut GameBoard, tile_index: usize) {
@@ -289,7 +391,9 @@ fn add_player(state: State<'_, Mutex<GameState>>, position_on_board: usize, posi
 
     let mut new_player = Player::default();
 
-    new_player.set_position(position_on_board, position_on_tile);
+    println!("added player: {} {:#010b}", position_on_tile, deserialize_position_on_tile(position_on_tile));
+
+    new_player.set_position(position_on_board, deserialize_position_on_tile(position_on_tile));
 
     new_player.draw_from(&mut state.tile_stack);
     new_player.draw_from(&mut state.tile_stack);
