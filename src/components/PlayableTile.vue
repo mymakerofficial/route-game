@@ -13,7 +13,7 @@ const { tile, ...playerTilePointer } = defineProps<{
 }>()
 
 const { mutateAsync: handleRotate } = useRotateTile(playerTilePointer)
-const { mutateAsync: handlePlace } = usePlacePlayerTile({ ...playerTilePointer, positionOnBoard: 0 })
+const { mutateAsync: handlePlace } = usePlacePlayerTile(playerTilePointer)
 </script>
 
 <template>

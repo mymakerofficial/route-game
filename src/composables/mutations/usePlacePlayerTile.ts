@@ -5,11 +5,7 @@ import {PlayerTilePointer} from "@/types.ts";
 import {useMutation, useQueryClient} from "@tanstack/vue-query";
 import {invoke} from "@tauri-apps/api/core";
 
-type PlacePlayerTileProps = PlayerTilePointer & {
-  positionOnBoard: number;
-}
-
-export function usePlacePlayerTile(props: PlacePlayerTileProps) {
+export function usePlacePlayerTile(props: PlayerTilePointer) {
   const queryClient = useQueryClient()
 
   return useMutation({

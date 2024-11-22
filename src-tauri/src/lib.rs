@@ -182,10 +182,10 @@ impl GameState {
         &mut self.players[player_index]
     }
 
-    fn place_tile(&mut self, player_index: usize, tile_index: usize, position_on_board: usize) {
+    fn place_tile(&mut self, player_index: usize, tile_index: usize) {
         let player = &mut self.players[player_index];
         let board = &mut self.board;
-        player.place_tile(board, tile_index, position_on_board);
+        player.place_tile(board, tile_index);
 
         let tile_stack = &mut self.tile_stack;
         player.draw_from(tile_stack);
@@ -203,9 +203,9 @@ impl Player {
         self.position_on_tile = position_on_tile;
     }
 
-    fn place_tile(&mut self, board: &mut GameBoard, tile_index: usize, position_on_board: usize) {
+    fn place_tile(&mut self, board: &mut GameBoard, tile_index: usize) {
         let tile = self.tile_stack.remove(tile_index);
-        board[position_on_board] = tile;
+        board[self.position_on_board] = tile;
     }
 
     fn get_tile(&mut self, tile_index: usize) -> &mut Tile {
@@ -305,9 +305,9 @@ fn rotate_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, t
 }
 
 #[tauri::command]
-fn place_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, tile_index: usize, position_on_board: usize) {
+fn place_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, tile_index: usize) {
     let mut state = state.lock().unwrap();
-    state.place_tile(player_index, tile_index, position_on_board);
+    state.place_tile(player_index, tile_index);
 }
 
 #[tauri::command]
