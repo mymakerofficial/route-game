@@ -24,6 +24,9 @@ const tileSize = computed(() => {
 })
 
 const notches = computed(() => {
+  if (tiles.some((tile) => !tile.isEmpty)) {
+    return []
+  }
   return getNotches().filter((notch) => !players.some((player) => notch.equals(player)))
 })
 
