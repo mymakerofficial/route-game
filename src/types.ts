@@ -13,6 +13,7 @@ export type RawPosition = {
 
 export type RawPlayer = RawPosition & {
   tileStack: RawTile[];
+  isDead: boolean;
 }
 
 export type PlayerTilePointer = {

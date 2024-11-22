@@ -36,6 +36,7 @@ struct Player {
     position_on_board: usize,
     tile_position_mask: u8,
     tile_stack: Vec<Tile>,
+    is_dead: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -44,6 +45,7 @@ struct UnwrappedPlayer {
     position_on_board: usize,
     position_on_tile: u8,
     tile_stack: Vec<UnwrappedTile>,
+    is_dead: bool,
 }
 
 struct GameState {
@@ -126,7 +128,8 @@ impl Serialize for Player {
                     is_empty: tile.is_empty(),
                     connections: unwrapped_connections
                 }
-            }).collect()
+            }).collect(),
+            is_dead: self.is_dead
         };
         unwrapped_player.serialize(serializer)
     }
@@ -237,7 +240,7 @@ fn transition_tile(tile_position_mask: u8) -> isize {
     }
 }
 
-fn update_player_position(player: &mut Player, board: &GameBoard) {
+fn update_player_position(player: &mut Player, board: &GameBoard, tile_stack: &mut Vec<Tile>) {
     // get the tile the player is standing on
     let tile = board[player.position_on_board];
 
@@ -261,7 +264,7 @@ fn update_player_position(player: &mut Player, board: &GameBoard) {
         // even though we are dead we still need to update the player's position
         player.tile_position_mask = new_tile_position;
 
-        // todo handle game over
+        player.set_dead(tile_stack);
 
         return;
     }
@@ -274,7 +277,7 @@ fn update_player_position(player: &mut Player, board: &GameBoard) {
     player.position_on_board = (player.position_on_board as isize + transition) as usize;
 
     // we might have ended up at another tile so let's go again
-    update_player_position(player, board);
+    update_player_position(player, board, tile_stack);
 }
 
 impl Tile {
@@ -311,15 +314,22 @@ impl GameState {
 
     fn update_positions(&mut self) {
         let board = &mut self.board;
+        let tile_stack = &mut self.tile_stack;
         for player in self.players.iter_mut() {
-            update_player_position(player, board);
+            if player.is_dead {
+                continue;
+            }
+            update_player_position(player, board, tile_stack);
         }
     }
 }
 
 impl Player {
     fn draw_from(&mut self, from_stack: &mut Vec<Tile>) {
-        let tile = from_stack.pop().unwrap();
+        let tile = match from_stack.pop() {
+            Some(tile) => tile,
+            None => return
+        };
         self.tile_stack.push(tile);
     }
 
@@ -329,8 +339,23 @@ impl Player {
     }
 
     fn place_tile(&mut self, board: &mut GameBoard, tile_index: usize) {
+        match board.get(self.position_on_board) {
+            Some(tile) => {
+                if !tile.is_empty() {
+                    // we are trying to place a tile on a non-empty tile
+                    return;
+                }
+            }
+            // we are out of bounds
+            None => return
+        }
         let tile = self.tile_stack.remove(tile_index);
         board[self.position_on_board] = tile;
+    }
+
+    fn set_dead(&mut self, to_tile_stack: &mut Vec<Tile>) {
+        self.is_dead = true;
+        to_tile_stack.append(&mut self.tile_stack);
     }
 
     fn get_tile(&mut self, tile_index: usize) -> &mut Tile {

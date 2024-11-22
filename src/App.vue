@@ -8,7 +8,7 @@ import {useGetTileStack} from "@/composables/queries/useGetTileStack.ts";
 import {useGetGameBoard} from "@/composables/queries/useGetGameBoard.ts";
 import {useResetGame} from "@/composables/mutations/useResetGame.ts";
 import {useToggle} from "@vueuse/core";
-import {InfoIcon, UndoIcon, EyeIcon, ArrowUpFromLineIcon, RotateCcwIcon, SquareAsteriskIcon} from "lucide-vue-next";
+import {InfoIcon, UndoIcon, EyeIcon, ArrowUpFromLineIcon, RotateCcwIcon, SquareAsteriskIcon, SkullIcon} from "lucide-vue-next";
 
 const { data: stack } = useGetTileStack()
 const { data: board } = useGetGameBoard()
@@ -28,7 +28,7 @@ const [showNerdStuff, toggleNerdStuff] = useToggle()
         <div class="flex flex-wrap gap-4">
           <div v-for="(player, index) in players" :key="index" class="space-y-2">
             <h3
-              class="p-2 font-medium rounded-md"
+              class="p-2 font-medium rounded-md flex gap-2 items-center"
               :class="[
                 'bg-yellow-200 text-yellow-900',
                 'bg-blue-200 text-blue-900',
@@ -38,7 +38,8 @@ const [showNerdStuff, toggleNerdStuff] = useToggle()
                 'bg-rose-200 text-rose-900',
               ][index % 6]"
             >
-              Player {{ index }}
+              <span>Player {{ index + 1 }}</span>
+              <SkullIcon v-if="player.isDead" class="size-5" />
             </h3>
             <PlayerTileStack :tiles="player.tileStack" :player-index="index" />
           </div>
@@ -62,7 +63,7 @@ const [showNerdStuff, toggleNerdStuff] = useToggle()
           </Button>
           <Button @click="() => toggleNerdStuff()" class="w-min gap-3" variant="ghost">
             <EyeIcon class="size-5" />
-            <span>Toggle Tile Stack</span>
+            <span>Toggle Nerd Stuff</span>
           </Button>
         </div>
         <div v-if="showNerdStuff" class="space-y-2">
