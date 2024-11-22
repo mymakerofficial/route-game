@@ -52,7 +52,7 @@ const { mutate: addPlayer } = useAddPlayer()
       />
     </template>
     <template v-for="(player, index) in players" :key="index">
-      <EmbeddedPlayerRenderer :player="player" :tile-size="tileSize" />
+      <EmbeddedPlayerRenderer :player="player" :index="index" :tile-size="tileSize" />
     </template>
   </svg>
 </template>
