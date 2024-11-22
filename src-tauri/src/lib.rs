@@ -94,7 +94,7 @@ impl Serialize for Tile {
     {
         let unwrapped_connections = serialize_connections(self.connections);
         let unwrapped_tile = UnwrappedTile {
-            is_empty: self.connections.iter().all(|&connection| connection == 0),
+            is_empty: self.is_empty(),
             connections: unwrapped_connections
         };
         unwrapped_tile.serialize(serializer)
@@ -123,7 +123,7 @@ impl Serialize for Player {
             tile_stack: self.tile_stack.clone().iter().map(|tile| {
                 let unwrapped_connections = serialize_connections(tile.connections);
                 UnwrappedTile {
-                    is_empty: tile.connections.iter().all(|&connection| connection == 0),
+                    is_empty: tile.is_empty(),
                     connections: unwrapped_connections
                 }
             }).collect()
@@ -216,7 +216,10 @@ fn walk_connection(connections: TileConnections, source_position_mask: u8) -> u8
             return destination_mask;
         }
     }
-    panic!("no connection found");
+    // this should never happen but no connection was found.
+    //  this means the player has reached an empty tile
+    //  and should not be moved
+    source_position_mask
 }
 
 fn transition_tile(tile_position_mask: u8) -> isize {
@@ -234,17 +237,43 @@ fn transition_tile(tile_position_mask: u8) -> isize {
     }
 }
 
+fn update_player_position(player: &mut Player, board: &GameBoard) {
+    // get the tile the player is standing on
+    let tile = board[player.position_on_board];
+
+    if tile.is_empty() {
+        return;
+    }
+
+    let new_position = walk_connection(tile.connections, player.tile_position_mask);
+
+    println!("walked: {} {:#010b}", serialize_position_on_tile(new_position), new_position);
+
+    let transition = transition_tile(new_position);
+
+    // todo check if the player is at the edge of the board
+
+    println!("moved: {} {}", player.position_on_board, transition);
+
+    let new_position = flip_points(new_position);
+
+    println!("flipped: {} {:#010b}", serialize_position_on_tile(new_position), new_position);
+
+    player.tile_position_mask = new_position;
+
+    player.position_on_board = (player.position_on_board as isize + transition) as usize;
+
+    // we might have ended up at another tile so let's go again
+    update_player_position(player, board);
+}
+
 impl Tile {
     fn rotate(&mut self) {
         self.connections = rotate_connections_90(self.connections);
     }
 
-    fn mirror(&mut self) {
-        self.connections = mirror_connections(self.connections);
-    }
-
-    fn flip(&mut self) {
-        self.connections = flip_connections(self.connections);
+    fn is_empty(&self) -> bool {
+        self.connections.iter().all(|&connection| connection == 0)
     }
 }
 
@@ -271,25 +300,9 @@ impl GameState {
     }
 
     fn update_positions(&mut self) {
+        let board = &mut self.board;
         for player in self.players.iter_mut() {
-            // get the tile the player is standing on
-            let tile = self.board[player.position_on_board];
-
-            let new_position = walk_connection(tile.connections, player.tile_position_mask);
-
-            println!("walked: {} {:#010b}", serialize_position_on_tile(new_position), new_position);
-
-            let transition = transition_tile(new_position);
-
-            println!("moved: {} {}", player.position_on_board, transition);
-
-            let new_position = flip_points(new_position);
-
-            println!("flipped: {} {:#010b}", serialize_position_on_tile(new_position), new_position);
-
-            player.tile_position_mask = new_position;
-
-            player.position_on_board = (player.position_on_board as isize + transition) as usize;
+            update_player_position(player, board);
         }
     }
 }
