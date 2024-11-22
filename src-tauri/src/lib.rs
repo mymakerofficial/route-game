@@ -245,22 +245,32 @@ fn update_player_position(player: &mut Player, board: &GameBoard) {
         return;
     }
 
-    let new_position = walk_connection(tile.connections, player.tile_position_mask);
+    // walk the connection, stay on the same tile
+    let new_tile_position = walk_connection(tile.connections, player.tile_position_mask);
 
-    println!("walked: {} {:#010b}", serialize_position_on_tile(new_position), new_position);
+    // check what tile we are moving to
+    let transition = transition_tile(new_tile_position);
 
-    let transition = transition_tile(new_position);
+    // check if we are about to move out of bounds
+    if
+        (player.position_on_board % 6 == 0 && transition == -1) || (player.position_on_board % 6 == 5 && transition == 1)
+        || (player.position_on_board < 6 && transition == -6) || (player.position_on_board > 29 && transition == 6)
+    {
+        // we dead
 
-    // todo check if the player is at the edge of the board
+        // even though we are dead we still need to update the player's position
+        player.tile_position_mask = new_tile_position;
 
-    println!("moved: {} {}", player.position_on_board, transition);
+        // todo handle game over
 
-    let new_position = flip_points(new_position);
+        return;
+    }
 
-    println!("flipped: {} {:#010b}", serialize_position_on_tile(new_position), new_position);
+    // because we just moved to a new tile,
+    //  we need to flip or position to appear in the same position on the new tile
+    let new_tile_position = flip_points(new_tile_position);
 
-    player.tile_position_mask = new_position;
-
+    player.tile_position_mask = new_tile_position;
     player.position_on_board = (player.position_on_board as isize + transition) as usize;
 
     // we might have ended up at another tile so let's go again
