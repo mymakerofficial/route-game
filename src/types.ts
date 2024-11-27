@@ -16,6 +16,13 @@ export type RawPlayer = RawPosition & {
   isDead: boolean;
 }
 
+export type RawGameState = {
+  board: RawTile[];
+  tileStack: RawTile[];
+  players: RawPlayer[];
+  playerTurn: number;
+}
+
 export type PlayerTilePointer = {
   playerIndex: number;
   tileIndex: number;

@@ -48,10 +48,21 @@ struct UnwrappedPlayer {
     is_dead: bool,
 }
 
+#[derive(Debug, Clone)]
 struct GameState {
     board: GameBoard,
     tile_stack: Vec<Tile>,
     players: Vec<Player>,
+    player_turn: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UnwrappedGameState {
+    board: Vec<UnwrappedTile>,
+    tile_stack: Vec<UnwrappedTile>,
+    players: Vec<UnwrappedPlayer>,
+    player_turn: usize,
 }
 
 // turns a connections binary representation into a tuple of its points numeric position
@@ -94,23 +105,7 @@ impl Serialize for Tile {
     where
         S: Serializer,
     {
-        let unwrapped_connections = serialize_connections(self.connections);
-        let unwrapped_tile = UnwrappedTile {
-            is_empty: self.is_empty(),
-            connections: unwrapped_connections
-        };
-        unwrapped_tile.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for Tile {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let unwrapped_connections = UnwrappedTileConnections::deserialize(deserializer)?;
-        let connections = deserialize_connections(unwrapped_connections);
-        Ok(Tile { connections })
+        self.unwrap().serialize(serializer)
     }
 }
 
@@ -119,19 +114,16 @@ impl Serialize for Player {
     where
         S: Serializer,
     {
-        let unwrapped_player = UnwrappedPlayer {
-            position_on_board: self.position_on_board,
-            position_on_tile: serialize_position_on_tile(self.tile_position_mask),
-            tile_stack: self.tile_stack.clone().iter().map(|tile| {
-                let unwrapped_connections = serialize_connections(tile.connections);
-                UnwrappedTile {
-                    is_empty: tile.is_empty(),
-                    connections: unwrapped_connections
-                }
-            }).collect(),
-            is_dead: self.is_dead
-        };
-        unwrapped_player.serialize(serializer)
+        self.unwrap().serialize(serializer)
+    }
+}
+
+impl Serialize for GameState {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.unwrap().serialize(serializer)
     }
 }
 
@@ -198,25 +190,12 @@ fn flip_connections(connections: TileConnections) -> TileConnections {
 // finds the connection that goes from the specified position on the tile
 //  and returns the position on the tile when the connection is walked across
 fn walk_connection(connections: TileConnections, source_position_mask: u8) -> u8 {
-    println!("walking source: {} {:#010b}", serialize_position_on_tile(source_position_mask), source_position_mask);
     // find the connection that has a bit high in the position given
     for connection in connections.iter() {
         if connection & source_position_mask != 0 {
             // we found the connection,
             //  the other high bit is the position on the tile we end up in
-            let destination_mask = connection ^ source_position_mask;
-            println!(
-                "walking connections: {:?} {:#010b} {:?} {:#010b} {:?} {:#010b} {:?} {:#010b}",
-                serialize_connection(connections[0]),
-                connections[0],
-                serialize_connection(connections[1]),
-                connections[1],
-                serialize_connection(connections[2]),
-                connections[2],
-                serialize_connection(connections[3]),
-                connections[3]
-            );
-            return destination_mask;
+            return connection ^ source_position_mask;
         }
     }
     // this should never happen but no connection was found.
@@ -281,6 +260,13 @@ fn update_player_position(player: &mut Player, board: &GameBoard, tile_stack: &m
 }
 
 impl Tile {
+    fn unwrap(&self) -> UnwrappedTile {
+        UnwrappedTile {
+            is_empty: self.is_empty(),
+            connections: serialize_connections(self.connections)
+        }
+    }
+
     fn rotate(&mut self) {
         self.connections = rotate_connections_90(self.connections);
     }
@@ -291,14 +277,44 @@ impl Tile {
 }
 
 impl GameState {
+    fn unwrap(&self) -> UnwrappedGameState {
+        UnwrappedGameState {
+            board: self.board.iter().map(|tile| tile.unwrap()).collect(),
+            tile_stack: self.tile_stack.iter().map(|tile| tile.unwrap()).collect(),
+            players: self.players.iter().map(|player| player.unwrap()).collect(),
+            player_turn: self.player_turn,
+        }
+    }
+
     fn reset(&mut self) {
         self.tile_stack = generate_tile_stack();
         self.board = [Tile::default(); 36];
         self.players = vec![];
+        self.player_turn = 0;
+    }
+
+    fn add_player(&mut self, position_on_board: usize, position_on_tile: u8) {
+        if self.tile_stack.len() < 3 {
+            return;
+        }
+
+        let mut new_player = Player::default();
+
+        new_player.set_position(position_on_board, deserialize_position_on_tile(position_on_tile));
+
+        new_player.draw_from(&mut self.tile_stack);
+        new_player.draw_from(&mut self.tile_stack);
+        new_player.draw_from(&mut self.tile_stack);
+
+        self.players.push(new_player);
     }
 
     fn get_player(&mut self, player_index: usize) -> &mut Player {
         &mut self.players[player_index]
+    }
+
+    fn get_current_player(&mut self) -> &mut Player {
+        &mut self.players[self.player_turn]
     }
 
     fn place_tile(&mut self, player_index: usize, tile_index: usize) {
@@ -309,7 +325,10 @@ impl GameState {
         let tile_stack = &mut self.tile_stack;
         player.draw_from(tile_stack);
 
+        // update player positions also handles player death
         self.update_positions();
+
+        self.next_player();
     }
 
     fn update_positions(&mut self) {
@@ -322,9 +341,35 @@ impl GameState {
             update_player_position(player, board, tile_stack);
         }
     }
+
+    fn get_is_game_over(&self) -> bool {
+        self.players.iter().all(|player| player.is_dead)
+    }
+
+    fn next_player(&mut self) {
+        if self.get_is_game_over() {
+            return;
+        }
+        // skip dead players
+        loop {
+            self.player_turn = (self.player_turn + 1) % self.players.len();
+            if !self.get_current_player().is_dead {
+                break;
+            }
+        }
+    }
 }
 
 impl Player {
+    fn unwrap(&self) -> UnwrappedPlayer {
+        UnwrappedPlayer {
+            position_on_board: self.position_on_board,
+            position_on_tile: serialize_position_on_tile(self.tile_position_mask),
+            tile_stack: self.tile_stack.iter().map(|tile| tile.unwrap()).collect(),
+            is_dead: self.is_dead,
+        }
+    }
+
     fn draw_from(&mut self, from_stack: &mut Vec<Tile>) {
         let tile = match from_stack.pop() {
             Some(tile) => tile,
@@ -355,7 +400,9 @@ impl Player {
 
     fn set_dead(&mut self, to_tile_stack: &mut Vec<Tile>) {
         self.is_dead = true;
+        shuffle_tiles(&mut self.tile_stack);
         to_tile_stack.append(&mut self.tile_stack);
+        self.tile_stack.drain(..);
     }
 
     fn get_tile(&mut self, tile_index: usize) -> &mut Tile {
@@ -429,25 +476,21 @@ impl Default for GameState {
             tile_stack: generate_tile_stack(),
             board: [Tile::default(); 36],
             players: vec![],
+            player_turn: 0,
         }
     }
 }
 
 #[tauri::command]
+fn get_game_state(state: State<'_, Mutex<GameState>>) -> GameState {
+    let state = state.lock().unwrap();
+    state.clone()
+}
+
+#[tauri::command]
 fn add_player(state: State<'_, Mutex<GameState>>, position_on_board: usize, position_on_tile: u8) {
     let mut state = state.lock().unwrap();
-
-    let mut new_player = Player::default();
-
-    println!("added player: {} {:#010b}", position_on_tile, deserialize_position_on_tile(position_on_tile));
-
-    new_player.set_position(position_on_board, deserialize_position_on_tile(position_on_tile));
-
-    new_player.draw_from(&mut state.tile_stack);
-    new_player.draw_from(&mut state.tile_stack);
-    new_player.draw_from(&mut state.tile_stack);
-
-    state.players.push(new_player);
+    state.add_player(position_on_board, position_on_tile);
 }
 
 #[tauri::command]
@@ -460,24 +503,6 @@ fn rotate_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, t
 fn place_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, tile_index: usize) {
     let mut state = state.lock().unwrap();
     state.place_tile(player_index, tile_index);
-}
-
-#[tauri::command]
-fn get_tile_stack(state: State<'_, Mutex<GameState>>) -> Vec<Tile> {
-    let state = state.lock().unwrap();
-    state.tile_stack.clone()
-}
-
-#[tauri::command]
-fn get_players(state: State<'_, Mutex<GameState>>) -> Vec<Player> {
-    let state = state.lock().unwrap();
-    state.players.clone()
-}
-
-#[tauri::command]
-fn get_game_board(state: State<'_, Mutex<GameState>>) -> Vec<Tile> {
-    let state = state.lock().unwrap();
-    state.board.clone().to_vec()
 }
 
 #[tauri::command]
@@ -495,9 +520,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_tile_stack,
-            get_players,
-            get_game_board,
+            get_game_state,
             add_player,
             rotate_player_tile,
             place_player_tile,

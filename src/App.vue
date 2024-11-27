@@ -2,18 +2,13 @@
 import GameGrid from "@/components/GameGrid.vue";
 import TileStack from "@/components/TileStack.vue";
 import {Button} from "@/components/ui/button";
-import PlayerTileStack from "@/components/PlayerTileStack.vue";
-import {useGetPlayers} from "@/composables/queries/useGetPlayers.ts";
-import {useGetTileStack} from "@/composables/queries/useGetTileStack.ts";
-import {useGetGameBoard} from "@/composables/queries/useGetGameBoard.ts";
+import {useGetGameState} from "@/composables/queries/useGetGameState.ts";
 import {useResetGame} from "@/composables/mutations/useResetGame.ts";
 import {useToggle} from "@vueuse/core";
-import {InfoIcon, UndoIcon, EyeIcon, ArrowUpFromLineIcon, RotateCcwIcon, SquareAsteriskIcon, SkullIcon} from "lucide-vue-next";
-import PlayerControlls from "@/components/PlayerControlls.vue";
+import {ArrowUpFromLineIcon, EyeIcon, InfoIcon, RotateCcwIcon, SquareAsteriskIcon, UndoIcon} from "lucide-vue-next";
+import PlayerControls from "@/components/PlayerControls.vue";
 
-const { data: stack } = useGetTileStack()
-const { data: board } = useGetGameBoard()
-const { data: players } = useGetPlayers()
+const { data: state } = useGetGameState()
 const { mutateAsync: resetGame } = useResetGame()
 
 const [showNerdStuff, toggleNerdStuff] = useToggle()
@@ -23,17 +18,21 @@ const [showNerdStuff, toggleNerdStuff] = useToggle()
   <main class="p-12 flex flex-col gap-12">
     <div class="grid grid-cols-2 gap-12">
       <div>
-        <GameGrid :tiles="board" :players="players" class="max-w-screen-md" />
+        <GameGrid :state="state" class="max-w-screen-md" />
       </div>
       <div class="flex flex-col gap-6">
-        <div class="flex flex-wrap gap-4">
-          <PlayerControlls v-for="(player, index) in players" :key="index" :player="player" :player-index="index" />
+        <div v-if="state.players.length" class="flex flex-wrap gap-4">
+          <PlayerControls
+            :player="state.players[state.playerTurn]"
+            :player-index="state.playerTurn"
+            :key="state.playerTurn"
+          />
         </div>
-        <div v-if="players.length" class="flex gap-3 items-center p-3 font-medium bg-neutral-100 rounded-md">
+        <div v-if="state.players.length" class="flex gap-3 items-center p-3 font-medium bg-neutral-100 rounded-md">
           <SquareAsteriskIcon class="size-5" />
-          <p>{{ stack.length }} tiles left.</p>
+          <p>{{ state.tileStack.length }} tiles left.</p>
         </div>
-        <div v-if="!players.length" class="flex gap-3 items-center p-3 font-medium bg-neutral-100 rounded-md">
+        <div v-if="!state.players.length" class="flex gap-3 items-center p-3 font-medium bg-neutral-100 rounded-md">
           <InfoIcon class="size-5" />
           <p>Click the notches at the edge of the board to add players.</p>
         </div>
@@ -53,12 +52,10 @@ const [showNerdStuff, toggleNerdStuff] = useToggle()
         </div>
         <div v-if="showNerdStuff" class="space-y-2">
           <h3 class="font-medium">Tile Stack</h3>
-          <TileStack :tiles="stack" />
+          <TileStack :tiles="state.tileStack" />
         </div>
       </div>
     </div>
-    <p v-if="showNerdStuff" class="p-2 bg-neutral-200 rounded-md font-mono">{{ board }}</p>
-    <p v-if="showNerdStuff" class="p-2 bg-neutral-200 rounded-md font-mono">{{ stack }}</p>
-    <p v-if="showNerdStuff" class="p-2 bg-neutral-200 rounded-md font-mono">{{ players }}</p>
+    <p v-if="showNerdStuff" class="p-2 bg-neutral-200 rounded-md font-mono">{{ state }}</p>
   </main>
 </template>

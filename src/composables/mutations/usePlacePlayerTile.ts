@@ -1,4 +1,4 @@
-import {getGameBoardQueryKey} from "@/composables/queries/useGetGameBoard.ts";
+import {getGameStateQueryKey} from "@/composables/queries/useGetGameState.ts";
 import {getTileStackQueryKey} from "@/composables/queries/useGetTileStack.ts";
 import {getPlayersQueryKey} from "@/composables/queries/useGetPlayers.ts";
 import {PlayerTilePointer} from "@/types.ts";
@@ -13,9 +13,7 @@ export function usePlacePlayerTile(props: PlayerTilePointer) {
       return await invoke("place_player_tile", props);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: getPlayersQueryKey() });
-      await queryClient.invalidateQueries({ queryKey: getGameBoardQueryKey() });
-      await queryClient.invalidateQueries({ queryKey: getTileStackQueryKey() });
+      await queryClient.invalidateQueries({ queryKey: getGameStateQueryKey() });
     }
   })
 }

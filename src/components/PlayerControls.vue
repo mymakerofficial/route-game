@@ -55,6 +55,9 @@ const tiles = computed(() => {
         </template>
       </Button>
     </div>
-    <PlayerTileStack :tiles="tiles" :player-index="playerIndex" />
+    <PlayerTileStack
+      :tiles="tiles"
+      :player-index="playerIndex"
+    />
   </div>
 </template>

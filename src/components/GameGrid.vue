@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {RawPlayer, RawTile} from "@/types.ts";
+import {RawGameState, RawPlayer, RawTile} from "@/types.ts";
 import {computed, HTMLAttributes} from "vue";
 import {cn} from "@/lib/utils.ts";
 import EmbeddedTileRenderer from "@/components/EmbeddedTileRenderer.vue";
@@ -8,13 +8,11 @@ import {getNotches} from "@/lib/translate.ts";
 import {useAddPlayer} from "@/composables/mutations/useAddPlayer.ts";
 
 const {
-  tiles,
-  players,
+  state,
   size = 1000,
   ...props
 } = defineProps<{
-  tiles: RawTile[]
-  players: RawPlayer[]
+  state: RawGameState
   size?: number
   class?: HTMLAttributes["class"]
 }>()
@@ -24,10 +22,10 @@ const tileSize = computed(() => {
 })
 
 const notches = computed(() => {
-  if (tiles.some((tile) => !tile.isEmpty)) {
+  if (state.board.some((tile) => !tile.isEmpty)) {
     return []
   }
-  return getNotches().filter((notch) => !players.some((player) => notch.equals(player)))
+  return getNotches().filter((notch) => !state.players.some((player) => notch.equals(player)))
 })
 
 const { mutate: addPlayer } = useAddPlayer()
@@ -39,7 +37,7 @@ const { mutate: addPlayer } = useAddPlayer()
     :viewBox="`0 0 ${size} ${size}`"
     :class="cn('aspect-square border-4 border-stone-900 rounded-lg bg-stone-900', props.class)"
   >
-    <template v-for="(tile, index) in tiles" :key="index">
+    <template v-for="(tile, index) in state.board" :key="index">
       <EmbeddedTileRenderer :tile="tile" :position="index" :tile-size="tileSize" />
     </template>
     <template v-for="(position, index) in notches" :key="index">
@@ -54,7 +52,7 @@ const { mutate: addPlayer } = useAddPlayer()
         @click="() => addPlayer(position)"
       />
     </template>
-    <template v-for="(player, index) in players" :key="index">
+    <template v-for="(player, index) in state.players" :key="index">
       <EmbeddedPlayerRenderer :player="player" :index="index" :tile-size="tileSize" />
     </template>
   </svg>
