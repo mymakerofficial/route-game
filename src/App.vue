@@ -9,6 +9,7 @@ import {useGetGameBoard} from "@/composables/queries/useGetGameBoard.ts";
 import {useResetGame} from "@/composables/mutations/useResetGame.ts";
 import {useToggle} from "@vueuse/core";
 import {InfoIcon, UndoIcon, EyeIcon, ArrowUpFromLineIcon, RotateCcwIcon, SquareAsteriskIcon, SkullIcon} from "lucide-vue-next";
+import PlayerControlls from "@/components/PlayerControlls.vue";
 
 const { data: stack } = useGetTileStack()
 const { data: board } = useGetGameBoard()
@@ -26,23 +27,7 @@ const [showNerdStuff, toggleNerdStuff] = useToggle()
       </div>
       <div class="flex flex-col gap-6">
         <div class="flex flex-wrap gap-4">
-          <div v-for="(player, index) in players" :key="index" class="space-y-2">
-            <h3
-              class="p-2 font-medium rounded-md flex gap-2 items-center"
-              :class="[
-                'bg-yellow-200 text-yellow-900',
-                'bg-blue-200 text-blue-900',
-                'bg-fuchsia-200 text-fuchsia-900',
-                'bg-lime-200 text-lime-900',
-                'bg-orange-200 text-orange-900',
-                'bg-rose-200 text-rose-900',
-              ][index % 6]"
-            >
-              <span>Player {{ index + 1 }}</span>
-              <SkullIcon v-if="player.isDead" class="size-5" />
-            </h3>
-            <PlayerTileStack :tiles="player.tileStack" :player-index="index" />
-          </div>
+          <PlayerControlls v-for="(player, index) in players" :key="index" :player="player" :player-index="index" />
         </div>
         <div v-if="players.length" class="flex gap-3 items-center p-3 font-medium bg-neutral-100 rounded-md">
           <SquareAsteriskIcon class="size-5" />
