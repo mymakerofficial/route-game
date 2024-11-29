@@ -2,23 +2,26 @@ use lib_tile::flip_points;
 use crate::game_state::GameBoard;
 use crate::lib_tile;
 use crate::player::Player;
-use crate::tile::{Tile, TileConnections};
+use crate::tile::{Tile};
 
 // finds the connection that goes from the specified position on the tile
 //  and returns the position on the tile when the connection is walked across
-fn walk_connection(connections: TileConnections, source_position_mask: u8) -> u8 {
+fn walk_tile(tile: Tile, source_position_mask: u8) -> u8 {
+    // lets assume we already checked that the tile is not empty
+    //  and that source_position_mask is valid
+    //  otherwise things are gonna go bad
+
     // find the connection that has a bit high in the position given
-    for connection in connections.iter() {
+    for connection in tile.connections.iter() {
         if connection & source_position_mask != 0 {
             // we found the connection,
             //  the other high bit is the position on the tile we end up in
             return connection ^ source_position_mask;
         }
     }
+
     // this should never happen but no connection was found.
-    //  this means the player has reached an empty tile
-    //  and should not be moved
-    source_position_mask
+    panic!("no connection found")
 }
 
 fn transition_tile(tile_position_mask: u8) -> isize {
@@ -45,7 +48,7 @@ pub fn update_player_position(player: &mut Player, board: &GameBoard, tile_stack
     }
 
     // walk the connection, stay on the same tile
-    let new_tile_position = walk_connection(tile.connections, player.tile_position_mask);
+    let new_tile_position = walk_tile(tile, player.tile_position_mask);
 
     // check what tile we are moving to
     let transition = transition_tile(new_tile_position);

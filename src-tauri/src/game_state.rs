@@ -1,4 +1,5 @@
 use serde::{Serialize, Serializer};
+use lib_player::update_player_position;
 use lib_tile::{deserialize_position_on_tile, generate_tile_stack};
 use crate::{lib_player, lib_tile};
 use crate::player::{Player, UnwrappedPlayer};
@@ -95,7 +96,7 @@ impl GameState {
             if player.is_dead {
                 continue;
             }
-            lib_player::update_player_position(player, board, tile_stack);
+            update_player_position(player, board, tile_stack);
         }
     }
 
