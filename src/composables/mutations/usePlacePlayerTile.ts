@@ -1,9 +1,8 @@
 import {getGameStateQueryKey} from "@/composables/queries/useGetGameState.ts";
-import {getTileStackQueryKey} from "@/composables/queries/useGetTileStack.ts";
-import {getPlayersQueryKey} from "@/composables/queries/useGetPlayers.ts";
 import {PlayerTilePointer} from "@/types.ts";
 import {useMutation, useQueryClient} from "@tanstack/vue-query";
 import {invoke} from "@tauri-apps/api/core";
+import {toast} from "vue-sonner";
 
 export function usePlacePlayerTile(props: PlayerTilePointer) {
   const queryClient = useQueryClient()
@@ -14,6 +13,7 @@ export function usePlacePlayerTile(props: PlayerTilePointer) {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: getGameStateQueryKey() });
-    }
+    },
+    onError: toast
   })
 }

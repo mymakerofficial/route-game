@@ -29,9 +29,11 @@ fn rotate_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, t
 }
 
 #[tauri::command]
-fn place_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, tile_index: usize) {
+fn place_player_tile(state: State<'_, Mutex<GameState>>, player_index: usize, tile_index: usize) -> Result<(), String> {
     let mut state = state.lock().unwrap();
-    state.place_tile(player_index, tile_index);
+    state.place_tile(player_index, tile_index)?;
+
+    Ok(())
 }
 
 #[tauri::command]

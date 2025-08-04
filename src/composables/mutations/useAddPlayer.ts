@@ -1,7 +1,5 @@
 import {useMutation, useQueryClient} from "@tanstack/vue-query";
 import {invoke} from "@tauri-apps/api/core";
-import {getPlayersQueryKey} from "@/composables/queries/useGetPlayers.ts";
-import {getTileStackQueryKey} from "@/composables/queries/useGetTileStack.ts";
 import {Position} from "@/lib/position.ts";
 import {getGameStateQueryKey} from "@/composables/queries/useGetGameState.ts";
 

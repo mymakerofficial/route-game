@@ -75,10 +75,10 @@ impl GameState {
         &mut self.players[self.player_turn]
     }
 
-    pub(crate) fn place_tile(&mut self, player_index: usize, tile_index: usize) {
+    pub(crate) fn place_tile(&mut self, player_index: usize, tile_index: usize) -> Result<(), String> {
         let player = &mut self.players[player_index];
         let board = &mut self.board;
-        player.place_tile(board, tile_index);
+        player.place_tile(board, tile_index)?;
 
         let tile_stack = &mut self.tile_stack;
         player.draw_from(tile_stack);
@@ -87,6 +87,8 @@ impl GameState {
         self.update_positions();
 
         self.next_player();
+
+        Ok(())
     }
 
     fn update_positions(&mut self) {

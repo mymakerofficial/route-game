@@ -7,6 +7,7 @@ import {useResetGame} from "@/composables/mutations/useResetGame.ts";
 import {useToggle} from "@vueuse/core";
 import {ArrowUpFromLineIcon, EyeIcon, InfoIcon, RotateCcwIcon, SquareAsteriskIcon, UndoIcon} from "lucide-vue-next";
 import PlayerControls from "@/components/PlayerControls.vue";
+import {Toaster} from "@/components/ui/sonner";
 
 const { data: state } = useGetGameState()
 const { mutateAsync: resetGame } = useResetGame()
@@ -56,6 +57,7 @@ const [showNerdStuff, toggleNerdStuff] = useToggle()
         </div>
       </div>
     </div>
-    <p v-if="showNerdStuff" class="p-2 bg-neutral-200 rounded-md font-mono">{{ state }}</p>
+    <pre v-if="showNerdStuff" class="p-2 bg-neutral-200 rounded-md font-mono text-wrap">{{ JSON.stringify(state) }}</pre>
   </main>
+  <Toaster />
 </template>
