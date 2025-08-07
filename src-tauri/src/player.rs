@@ -1,3 +1,4 @@
+use rand::thread_rng;
 use crate::game_state::GameBoard;
 use crate::lib_player::update_player_position;
 use crate::lib_tile;
@@ -54,6 +55,37 @@ impl Player {
         self.tile_position_mask = tile_position_mask;
     }
 
+    // check if we are about to die
+    pub(crate) fn check_place_tile_game_over(&mut self, board: &mut GameBoard, tile: Tile) -> bool {
+        let mut player_clone = self.clone();
+        let mut board_clone = board.clone();
+        let tile_clone = tile.clone();
+        board_clone[player_clone.position_on_board] = tile_clone;
+
+        update_player_position(&mut player_clone, &board_clone, &mut vec![] /* fake global tile stack */);
+
+        player_clone.is_dead
+    }
+
+    pub(crate) fn check_has_possible_moves(&mut self, board: &mut GameBoard) -> bool {
+        // check if we can place any tile on the board
+        for tile in &self.clone().tile_stack {
+            let mut tile_clone = tile.clone();
+            // rotate the tile to check all possible orientations
+            for _ in 0..4 {
+                // check if placing this tile would not cause game over
+                if !self.check_place_tile_game_over(board, tile_clone) {
+                    return true;
+                }
+
+                tile_clone.rotate();
+            }
+        }
+
+        // no possible moves left
+        false
+    }
+
     pub(crate) fn place_tile(&mut self, board: &mut GameBoard, tile_index: usize) -> Result<(), String> {
         match board.get(self.position_on_board) {
             Some(tile) => {
@@ -66,17 +98,13 @@ impl Player {
             None => return Ok(())
         }
 
-        // check if we are about to die
-        let mut player_clone = self.clone();
-        let mut board_clone = board.clone();
-        let tile_clone = player_clone.tile_stack.remove(tile_index);
-        board_clone[player_clone.position_on_board] = tile_clone;
+        if !self.check_has_possible_moves(board) {
+            return Err("Failed to place tile. Player has no possible remaining moves.".to_string());
+        }
 
-        update_player_position(&mut player_clone, &board_clone, &mut vec![] /* fake global tile stack */);
-
-        if player_clone.is_dead {
+        if self.check_place_tile_game_over(board, self.tile_stack[tile_index]) {
             // we just caused our own death, which is not allowed
-           return Err("Failed to place tile. Placing tile would result in game over.".to_string());
+            return Err("Failed to place tile. Placing tile would result in game over.".to_string());
         }
 
         let tile = self.tile_stack.remove(tile_index);
